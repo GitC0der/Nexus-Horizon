@@ -3,16 +3,21 @@ using System.Collections;
 
 public class GameManager : MonoBehaviour {
 
-    public GameObject cubePrefab;  // Prefab of the cube to be spawned
+    public GameObject buildingPrefab;
+    public GameObject parkPrefab;
+    public GameObject trainPrefab;
+    public GameObject skybridgePrefab;
+    public GameObject walkwayPrefab;
+    
+    private GameObject[] prefabs;
+    private int nbPrefabs = 5;
 
-    public int numCubesPerLine = 10;      // Number of cubes to spawn per line
-    public int numLines = 10;      // Number of lines to spawn
     private float spawnInterval = 0.1f;  // Time between each cube spawn
 
     private float timer = 0.0f;     // Timer to track time between spawns
-    private int widthX = 10;
-    private int widthY = 10;
-    private int widthZ = 10;
+    private int widthX = 3;
+    private int widthY = 3;
+    private int widthZ = 3;
 
     private int x = 0;
     private int y = 0;
@@ -20,6 +25,8 @@ public class GameManager : MonoBehaviour {
 
     // Use this for initialization
     void Start () {
+        // Initiasize the prefabs array with the five given gameObjects
+        prefabs = new GameObject[] { buildingPrefab, parkPrefab, trainPrefab, skybridgePrefab, walkwayPrefab };
     }
     
     // Update is called once per frame
@@ -43,7 +50,7 @@ public class GameManager : MonoBehaviour {
                 ++z;
             }
 
-            if (z > widthZ) {
+            if (z >= widthZ) {
                 z = 0;
                 timer = -100000;
             }
@@ -52,7 +59,8 @@ public class GameManager : MonoBehaviour {
 
     // Spawn a single cube
     void SpawnCube(Vector3 position) {
-        // Spawn a new cube
-        Instantiate(cubePrefab, position, Quaternion.identity);
+        int rand = Random.Range(0, nbPrefabs);
+        // Spawn a new cube using a randomly selected prefab from the prefabs array
+        Instantiate(prefabs[rand], position, Quaternion.identity);
     }
 }
