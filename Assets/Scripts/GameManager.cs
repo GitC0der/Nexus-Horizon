@@ -9,18 +9,20 @@ public class GameManager : MonoBehaviour {
     public GameObject trainPrefab;
     public GameObject skybridgePrefab;
     public GameObject walkwayPrefab;
+    private GameObject voidPrefab;
 
     private List<GameObject> prefabs;
     private Dictionary<string, float> map = new Dictionary<string, float>()
     {
-        { "Building", 0.4f },
-        { "Park", 0.15f },
-        { "Train", 0.15f },
+        { "Building", 0.35f },
+        { "Park", 0.1f },
+        { "Train", 0.1f },
         { "SkyBridge", 0.1f },
-        { "Walkway", 0.2f }
+        { "Walkway", 0.15f },
+        {"Void", 0.2f}
     };
 
-    private float spawnInterval = 0.1f; // Time between each cube spawn
+    private float spawnInterval = 0.33f; // Time between each cube spawn
     private float timer = 0.0f; // Timer to track time between spawns
     private int widthX = 3;
     private int widthY = 3;
@@ -33,7 +35,7 @@ public class GameManager : MonoBehaviour {
 
     // Use this for initialisation
     void Start () {
-        prefabs = new List<GameObject>() { buildingPrefab, parkPrefab, trainPrefab, skybridgePrefab, walkwayPrefab };
+        prefabs = new List<GameObject>() { buildingPrefab, parkPrefab, trainPrefab, skybridgePrefab, walkwayPrefab, voidPrefab };
     }
 
     // Update is called once per frame
@@ -91,7 +93,9 @@ public class GameManager : MonoBehaviour {
             if (randomValue < cumulativeProbability)
             {
                 lastPrefabName = item.Key; // Store the name of the last prefab placed
-                Instantiate(prefabs.Find(p => p.name.Contains(item.Key)), position, Quaternion.identity);
+                if (item.Key != "Void") {
+                    Instantiate(prefabs.Find(p => p.name.Contains(item.Key)), position, Quaternion.identity);
+                }
                 break;
             }
         }
