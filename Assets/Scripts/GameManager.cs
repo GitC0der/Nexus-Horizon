@@ -29,6 +29,8 @@ public class GameManager : MonoBehaviour {
     private int y = 0;
     private int z = 0;
 
+    private string lastPrefabName = ""; // Store the name of the last prefab placed
+
     // Use this for initialisation
     void Start () {
         prefabs = new List<GameObject>() { buildingPrefab, parkPrefab, trainPrefab, skybridgePrefab, walkwayPrefab };
@@ -42,7 +44,18 @@ public class GameManager : MonoBehaviour {
         if (timer >= spawnInterval)
         {
             timer = 0;
-            SpawnPrefab(transform.position + x * Vector3.right + y * Vector3.forward + z * Vector3.up);
+
+            // Determine the probability distribution for the next prefab
+            Dictionary<string, float> nextMap = new Dictionary<string, float>(map); // Create a copy of the original map
+            if (!string.IsNullOrEmpty(lastPrefabName))
+            {
+                // Double the probability of the same type of prefab
+                float oldProbability = nextMap[lastPrefabName];
+                nextMap[lastPrefabName] = Mathf.Min(1.0f, oldProbability * 2);
+            }
+
+            // Choose the next prefab based on the probability distribution
+            SpawnPrefab(transform.position + x * Vector3.right + y * Vector3.forward + z * Vector3.up, nextMap);
             ++x;
             if (x >= widthX) {
                 x = 0;
@@ -61,10 +74,10 @@ public class GameManager : MonoBehaviour {
         }
     }
 
-    void SpawnPrefab(Vector3 position)
+    void SpawnPrefab(Vector3 position, Dictionary<string, float> probabilityMap)
     {
         float totalProbability = 0.0f;
-        foreach (var item in map)
+        foreach (var item in probabilityMap)
         {
             totalProbability += item.Value;
         }
@@ -72,11 +85,12 @@ public class GameManager : MonoBehaviour {
         float randomValue = Random.Range(0.0f, totalProbability);
 
         float cumulativeProbability = 0.0f;
-        foreach (var item in map)
+        foreach (var item in probabilityMap)
         {
             cumulativeProbability += item.Value;
             if (randomValue < cumulativeProbability)
             {
+                lastPrefabName = item.Key; // Store the name of the last prefab placed
                 Instantiate(prefabs.Find(p => p.name.Contains(item.Key)), position, Quaternion.identity);
                 break;
             }
