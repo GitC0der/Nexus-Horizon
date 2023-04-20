@@ -27,52 +27,52 @@ public class GameManager : MonoBehaviour {
     private Dictionary<string, Dictionary<string, float>> probabilities = new Dictionary<string, Dictionary<string, float>>()
     {
         { "Building", new Dictionary<string, float> {
-            { "Building", 0.45f },
-            { "Park", 0.1f },
-            { "Train", 0.1f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.15f },
-            { "Void", 0.1f}
-        }},
-        { "Park", new Dictionary<string, float> {
-            { "Building", 0.35f },
-            { "Park", 0.2f },
-            { "Train", 0.1f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.15f },
-            { "Void", 0.1f}
-        }},
-        { "Train", new Dictionary<string, float> {
-            { "Building", 0.35f },
-            { "Park", 0.1f },
-            { "Train", 0.2f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.15f },
-            { "Void", 0.1f}
-        }},
-        { "SkyBridge", new Dictionary<string, float> {
-            { "Building", 0.35f },
-            { "Park", 0.1f },
-            { "Train", 0.1f },
-            { "SkyBridge", 0.2f },
-            { "Walkway", 0.15f },
-            { "Void", 0.1f}
-        }},
-        { "Walkway", new Dictionary<string, float> {
-            { "Building", 0.35f },
-            { "Park", 0.1f },
-            { "Train", 0.1f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.25f },
-            { "Void", 0.1f}
-        }},
-        { "Void", new Dictionary<string, float> {
-            { "Building", 0.3f },
+            { "Building", 0.5f },
             { "Park", 0.1f },
             { "Train", 0.1f },
             { "SkyBridge", 0.1f },
             { "Walkway", 0.1f },
-            { "Void", 0.3f}
+            { "Void", 0.1f}
+        }},
+        { "Park", new Dictionary<string, float> {
+            { "Building", 0.1f },
+            { "Park", 0.5f },
+            { "Train", 0.1f },
+            { "SkyBridge", 0.1f },
+            { "Walkway", 0.1f },
+            { "Void", 0.1f}
+        }},
+        { "Train", new Dictionary<string, float> {
+            { "Building", 0.1f },
+            { "Park", 0.1f },
+            { "Train", 0.5f },
+            { "SkyBridge", 0.1f },
+            { "Walkway", 0.1f },
+            { "Void", 0.1f}
+        }},
+        { "SkyBridge", new Dictionary<string, float> {
+            { "Building", 0.1f },
+            { "Park", 0.1f },
+            { "Train", 0.1f },
+            { "SkyBridge", 0.5f },
+            { "Walkway", 0.1f },
+            { "Void", 0.1f}
+        }},
+        { "Walkway", new Dictionary<string, float> {
+            { "Building", 0.1f },
+            { "Park", 0.1f },
+            { "Train", 0.1f },
+            { "SkyBridge", 0.1f },
+            { "Walkway", 0.5f },
+            { "Void", 0.1f}
+        }},
+        { "Void", new Dictionary<string, float> {
+            { "Building", 0.1f },
+            { "Park", 0.1f },
+            { "Train", 0.1f },
+            { "SkyBridge", 0.1f },
+            { "Walkway", 0.1f },
+            { "Void", 0.5f}
         }}
     };
     
@@ -136,28 +136,11 @@ public class GameManager : MonoBehaviour {
             
             // Determine which Prefab's probabilities to select from the probabilityMap
             if (randomValue < cumulativeProbas) {
-                // This is to account for potential errors where the total probability isn't equal to 1
-                var actualProbas = probabilities[item.Key];
-                float actualTotalProbas = 0.0f;
-                foreach (var prefabToProba in actualProbas) {
-                    actualTotalProbas += prefabToProba.Value;
-                }
-
-                float rand = Random.Range(0.0f, actualTotalProbas);
-                float actualCumulativeProbas = 0.0f;
+                lastPrefabName = item.Key; // Store the name of the last prefab placed
                 
-                // Choose the next prefab type based on the probabilities for the current prefab type
-                foreach (var prefabToProba in actualProbas) {
-                    actualCumulativeProbas += prefabToProba.Value;
-                    if (rand < actualCumulativeProbas) {
-                        lastPrefabName = prefabToProba.Key; // Store the name of the last prefab placed
-                        
-                        // If it is of type "Void", do not place anything
-                        if (prefabToProba.Key != "Void") {
-                            Instantiate(prefabs.Find(p => p.name.Contains(prefabToProba.Key)), position, Quaternion.identity);
-                        }
-                        break;
-                    }
+                // If it is of type "Void", do not place anything
+                if (item.Key != "Void") {
+                    Instantiate(prefabs.Find(p => p.name.Contains(item.Key)), position, Quaternion.identity);
                 }
                 break;
             }
