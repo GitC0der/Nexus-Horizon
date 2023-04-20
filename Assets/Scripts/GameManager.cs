@@ -4,6 +4,7 @@ using System.Collections;
 public class GameManager : MonoBehaviour {
 
     public GameObject cubePrefab;  // Prefab of the cube to be spawned
+
     public int numCubesPerLine = 10;      // Number of cubes to spawn per line
     public int numLines = 10;      // Number of lines to spawn
     private float spawnInterval = 0.1f;  // Time between each cube spawn
@@ -16,25 +17,26 @@ public class GameManager : MonoBehaviour {
     private int x = 0;
     private int y = 0;
     private int z = 0;
-        
 
     // Use this for initialization
     void Start () {
     }
     
     // Update is called once per frame
-    void Update () {
+    void Update()
+    {
         timer += Time.deltaTime;
-        
+
         if (timer >= spawnInterval)
         {
             timer = 0;
-            SpawnCube(transform.position + x*Vector3.right + y*Vector3.forward + z*Vector3.up);
+            SpawnCube(transform.position + x * Vector3.right + y * Vector3.forward + z * Vector3.up);
             ++x;
             if (x >= widthX) {
                 x = 0;
                 ++y;
             }
+
 
             if (y >= widthY) {
                 y = 0;
