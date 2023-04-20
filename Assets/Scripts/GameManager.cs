@@ -13,11 +13,11 @@ public class GameManager : MonoBehaviour {
 
     private List<GameObject> prefabs;
 
-    private float spawnInterval = 0.33f;
+    private float spawnInterval = 0.1f;
     private float timer = 0.0f;
-    private int widthX = 3;
-    private int widthY = 3;
-    private int widthZ = 3;
+    private int widthX = 30;
+    private int widthY = 30;
+    private int widthZ = 30;
     private int x = 0;
     private int y = 0;
     private int z = 0;
@@ -27,11 +27,11 @@ public class GameManager : MonoBehaviour {
     private Dictionary<string, Dictionary<string, float>> probabilities = new Dictionary<string, Dictionary<string, float>>()
     {
         { "Building", new Dictionary<string, float> {
-            { "Building", 0.5f },
-            { "Park", 0.1f },
+            { "Building", 60 },
+            { "Park", 5 },
             { "Train", 0.1f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.1f },
+            { "SkyBridge", 1 },
+            { "Walkway", 1 },
             { "Void", 0.1f}
         }},
         { "Park", new Dictionary<string, float> {
@@ -72,7 +72,7 @@ public class GameManager : MonoBehaviour {
             { "Train", 0.1f },
             { "SkyBridge", 0.1f },
             { "Walkway", 0.1f },
-            { "Void", 0.5f}
+            { "Void", 20}
         }}
     };
     
