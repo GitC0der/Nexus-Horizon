@@ -22,7 +22,8 @@ public class GameManager : MonoBehaviour {
     private int x = 0;
     private int y = 0;
     private int z = 0;
-    private bool hasStarted = false;
+    private bool isRunning = false;
+    private bool isPlacingOne = false;
     
     
     // DEBUGGING
@@ -54,16 +55,28 @@ public class GameManager : MonoBehaviour {
         BlockBox.AddBlock(block, position);
         Instantiate(PrefabFrom(block), position.AsVector3(), Quaternion.identity);
         ++blockCount;
-        hasStarted = true;
+        isRunning = true;
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (!hasStarted) {
+        
+        if (Input.GetKeyDown("p")) {
+            isRunning = !isRunning;
+        }
+        
+        timer += Time.deltaTime;
+
+        if (Input.GetKeyDown("e")) {
+            timer = spawnInterval;
+            isPlacingOne = true;
+            Debug.Log("hahaha");
+        }
+        
+        if (!isRunning && !isPlacingOne) {
             return;
         }
-        timer += Time.deltaTime;
 
         if (timer >= spawnInterval) {
             timer = 0;
@@ -82,7 +95,7 @@ public class GameManager : MonoBehaviour {
             if (y >= BlockBox.sizeY) {
                 y = 0;
                 timer = -100000;
-                hasStarted = false;
+                isRunning = false;
             }
             
             // DEBUGGING
@@ -90,6 +103,7 @@ public class GameManager : MonoBehaviour {
                 var p = 0;
             }
 
+            Debug.Log("-------- New block ---------");
             Position3 currentPos = new Position3(x, y, z);
             Dictionary<Position3, Block> neighbors = BlockBox.GetNeighbors(currentPos);
             Block block = Distribution.PickBlock(neighbors, currentPos);
@@ -103,7 +117,16 @@ public class GameManager : MonoBehaviour {
 
             ++blockCount;
 
+            if (block != Block.Void) {
+                isPlacingOne = false;
+            } else {
+                isPlacingOne = true;
+                timer = spawnInterval;
+            }
+
         }
+        
+        
 
 
     }

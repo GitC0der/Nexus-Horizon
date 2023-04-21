@@ -16,13 +16,13 @@ namespace Data
         
         private static Dictionary<Block, double> Building_Above = new Dictionary<Block, double>() {
             { Block.Building, 20 },
-            { Block.Park, 1 },
+            { Block.Park, 3 },
             { Block.Void, 0 }
         };
 
         private static Dictionary<Block, double> Building_Next = new Dictionary<Block, double>() {
             { Block.Building, 50 },
-            { Block.Park, 1 },
+            { Block.Park, 5 },
             { Block.Void, 10 }
         };
 
@@ -40,7 +40,7 @@ namespace Data
 
         private static Dictionary<Block, double> Park_Next = new Dictionary<Block, double>() {
             { Block.Building, 1 },
-            { Block.Park, 10 },
+            { Block.Park, 50 },
             { Block.Void, 2 }
         };
 
@@ -57,9 +57,9 @@ namespace Data
         };
 
         private static Dictionary<Block, double> Void_Next = new Dictionary<Block, double>() {
-            { Block.Building, 2 },
-            { Block.Park, 1 },
-            { Block.Void, 20 }
+            { Block.Building, 5 },
+            { Block.Park, 2 },
+            { Block.Void, 13 }
         };
 
         private static Dictionary<Block, double> Void_Below = new Dictionary<Block, double>() {
@@ -102,7 +102,7 @@ namespace Data
                 return distributions[0];
             }
             Dictionary<Block, double> distribution = distributions[0];
-            for (int i = 1; i < distributions.Count - 1; i++) {
+            for (int i = 1; i < distributions.Count; i++) {
                 distribution = MixDistributions(distribution, distributions[i]);
             }
 
@@ -119,7 +119,7 @@ namespace Data
                 sum1 += pair.Value;
             }
             double sum2 = 0;
-            foreach (var pair in distr1) {
+            foreach (var pair in distr2) {
                 sum2 += pair.Value;
             }
             
@@ -167,6 +167,8 @@ namespace Data
                 distributions.Add(SelectDistribution(block, position, currentPos));
             }
 
+            Debug.Log($"In PickBlock: neighbors is {DebugUtils.ToString(neighbors, pos => $"{pos}", block => $"{block}")}, currentPos is ${currentPos}");
+
             if (distributions.Count == 0) {
                 Func<Dictionary<Block, double>, string> formatter = distr =>
                     DebugUtils.ToString(distr, block => $"{block}", value => $"{value}");
@@ -174,7 +176,9 @@ namespace Data
                 throw new Exception("ERROR: no distribution was found");
             }
 
-            return PickBlock(MixDistributions(distributions));
+            Dictionary<Block, double> distribution = MixDistributions(distributions);
+            Debug.Log($"Final distribution is {ToString(distribution)}");
+            return PickBlock(distribution);
         }
 
         private static Dictionary<Block, double> SelectDistribution(Block previousBlock, Position3 previousPos, Position3 current) {

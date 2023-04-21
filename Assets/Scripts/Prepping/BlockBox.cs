@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.Design;
+using DefaultNamespace;
 using UnityEngine;
 
 namespace Prepping
@@ -49,6 +50,8 @@ namespace Prepping
             Check(neighbors, position, new Position3(0, -1, 0));
             Check(neighbors, position, new Position3(0, 0, 1));
             Check(neighbors, position, new Position3(0, 0, -1));
+            
+            Debug.Log($"Neighbors are {DebugUtils.ToString(neighbors, pos => $"{pos}", block => $"{block}")}");
 
             /*
             for (int x = -1; x < 1; x++) {
