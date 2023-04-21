@@ -1,6 +1,10 @@
+using System;
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using Data;
+using Prepping;
+using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour {
 
@@ -11,139 +15,98 @@ public class GameManager : MonoBehaviour {
     public GameObject walkwayPrefab;
     private GameObject voidPrefab;
 
-    private List<GameObject> prefabs;
+    public Dictionary<Block, GameObject> prefabs;
 
-    private float spawnInterval = 0.1f;
+    private float spawnInterval = 0.01f;
     private float timer = 0.0f;
-    private int widthX = 30;
-    private int widthY = 30;
-    private int widthZ = 30;
     private int x = 0;
     private int y = 0;
     private int z = 0;
+    private bool hasStarted = false;
+    
+    
+    // DEBUGGING
+    private int blockCount = 0;
 
     private string lastPrefabName = "";
+
+    private GameObject PrefabFrom(Block block) {
+        GameObject prefab;
+        prefabs.TryGetValue(block, out prefab);
+        return prefab;
+    }
     
-    private Dictionary<string, Dictionary<string, float>> probabilities = new Dictionary<string, Dictionary<string, float>>()
-    {
-        { "Building", new Dictionary<string, float> {
-            { "Building", 60 },
-            { "Park", 5 },
-            { "Train", 0.1f },
-            { "SkyBridge", 1 },
-            { "Walkway", 1 },
-            { "Void", 0.1f}
-        }},
-        { "Park", new Dictionary<string, float> {
-            { "Building", 0.1f },
-            { "Park", 0.5f },
-            { "Train", 0.1f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.1f },
-            { "Void", 0.1f}
-        }},
-        { "Train", new Dictionary<string, float> {
-            { "Building", 0.1f },
-            { "Park", 0.1f },
-            { "Train", 0.5f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.1f },
-            { "Void", 0.1f}
-        }},
-        { "SkyBridge", new Dictionary<string, float> {
-            { "Building", 0.1f },
-            { "Park", 0.1f },
-            { "Train", 0.1f },
-            { "SkyBridge", 0.5f },
-            { "Walkway", 0.1f },
-            { "Void", 0.1f}
-        }},
-        { "Walkway", new Dictionary<string, float> {
-            { "Building", 0.1f },
-            { "Park", 0.1f },
-            { "Train", 0.1f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.5f },
-            { "Void", 0.1f}
-        }},
-        { "Void", new Dictionary<string, float> {
-            { "Building", 0.1f },
-            { "Park", 0.1f },
-            { "Train", 0.1f },
-            { "SkyBridge", 0.1f },
-            { "Walkway", 0.1f },
-            { "Void", 20}
-        }}
-    };
+    // DEBUGGING
+    //[Obsolete("This method is for debugging only.")]
+    public Position3 CurrentPos() => new Position3(x, y, z);
     
     // Use this for initialisation
     void Start () {
-        prefabs = new List<GameObject>() { buildingPrefab, parkPrefab, trainPrefab, skybridgePrefab, walkwayPrefab, voidPrefab };
+        prefabs = new Dictionary<Block, GameObject>() {
+            { Block.Building, buildingPrefab },
+            { Block.Park, parkPrefab },
+            { Block.Void, voidPrefab }
+        };
+        BlockBox.Instantiate();
+
+        Position3 position = new Position3(0, 0, 0);
+        Block block = Block.Building;
+        BlockBox.AddBlock(block, position);
+        Instantiate(PrefabFrom(block), position.AsVector3(), Quaternion.identity);
+        ++blockCount;
+        hasStarted = true;
     }
 
     // Update is called once per frame
     void Update()
     {
+        if (!hasStarted) {
+            return;
+        }
         timer += Time.deltaTime;
 
-        if (timer >= spawnInterval)  {
+        if (timer >= spawnInterval) {
             timer = 0;
 
-            // Determine the probability distribution for the next prefab
-            Dictionary<string, float> nextProbabilities;
-            if (string.IsNullOrEmpty(lastPrefabName)) {
-                // If this is the first prefab, use the default probabilities
-                nextProbabilities = new Dictionary<string, float>(probabilities["Building"]);
-            } else {
-                // Otherwise use the probabilities for the current prefab type
-                nextProbabilities = new Dictionary<string, float>(probabilities[lastPrefabName]);
-            }
-
-            // Choose the next prefab based on the probability distribution associated to the previous prefab
-            SpawnPrefab(transform.position + x * Vector3.right + y * Vector3.forward + z * Vector3.up, nextProbabilities);
             ++x;
-            if (x >= widthX) {
+            if (x >= BlockBox.sizeX) {
                 x = 0;
-                ++y;
-            }
-
-            if (y >= widthY) {
-                y = 0;
                 ++z;
             }
 
-            if (z >= widthZ) {
+            if (z >= BlockBox.sizeZ) {
                 z = 0;
+                ++y;
+            }
+
+            if (y >= BlockBox.sizeY) {
+                y = 0;
                 timer = -100000;
+                hasStarted = false;
             }
-        }
-    }
-
-    void SpawnPrefab(Vector3 position, Dictionary<string, float> probabilityMap)
-    {
-        // This is to account for potential errors where the total probability isn't equal to 1
-        float totalProba = 0.0f;
-        foreach (var item in probabilityMap) {
-            totalProba += item.Value;
-        }
-
-        // Select a random value to determine the next prefab
-        float randomValue = Random.Range(0.0f, totalProba);
-        float cumulativeProbas = 0.0f;
-        
-        foreach (var item in probabilityMap) {
-            cumulativeProbas += item.Value;
             
-            // Determine which Prefab's probabilities to select from the probabilityMap
-            if (randomValue < cumulativeProbas) {
-                lastPrefabName = item.Key; // Store the name of the last prefab placed
-                
-                // If it is of type "Void", do not place anything
-                if (item.Key != "Void") {
-                    Instantiate(prefabs.Find(p => p.name.Contains(item.Key)), position, Quaternion.identity);
-                }
-                break;
+            // DEBUGGING
+            if (z == 1) {
+                var p = 0;
             }
+
+            Position3 currentPos = new Position3(x, y, z);
+            Dictionary<Position3, Block> neighbors = BlockBox.GetNeighbors(currentPos);
+            Block block = Distribution.PickBlock(neighbors, currentPos);
+            BlockBox.AddBlock(block, currentPos);
+            if (block == Block.NULL) {
+                throw new Exception("Fatal ERROR: a NULL block was generated");
+            }
+            if (block != Block.Void) {
+                Instantiate(PrefabFrom(block), currentPos.AsVector3(), Quaternion.identity);
+            }
+
+            ++blockCount;
+
         }
+
+
     }
+
+
 }
