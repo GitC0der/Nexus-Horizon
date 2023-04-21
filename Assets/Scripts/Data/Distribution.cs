@@ -89,6 +89,10 @@ namespace Data
                 { Block.Void, Void_Below }
             };
 
+        public static string ToString(Dictionary<Block, double> distribution) {
+            return $"Distribution[{DebugUtils.ToString(distribution, block => $"{block}", value => $"{value}")}]";
+        }
+        
         private static List<Block> BlocksOrder = new List<Block>() { Block.Building, Block.Park, Block.Void };
 
         private static Dictionary<Block, double> MixDistributions(List<Dictionary<Block, double>> distributions) {
@@ -164,7 +168,8 @@ namespace Data
             }
 
             if (distributions.Count == 0) {
-                Func<Dictionary<Block, double>, string> formatter = distr => DebugUtils.ToString(distr, block => $"{block}", value => $"{value}");
+                Func<Dictionary<Block, double>, string> formatter = distr =>
+                    DebugUtils.ToString(distr, block => $"{block}", value => $"{value}");
                 Debug.Log($"{DebugUtils.ToString(distributions, formatter)} |||| {currentPos}");
                 throw new Exception("ERROR: no distribution was found");
             }
@@ -178,13 +183,18 @@ namespace Data
             if (direction == Position3.left || direction == Position3.right || direction == -Position3.left || direction == -Position3.right ||
             direction == Position3.forward || direction == Position3.back || direction == -Position3.forward || direction == -Position3.back) {
                 nextDistributions.TryGetValue(previousBlock, out distr);
+                Debug.Log($"Next distribution was chosen");
             } else if (direction == Position3.up) {
+                Debug.Log($"Above distribution was chosen");
                 aboveDistributions.TryGetValue(previousBlock, out distr);
             } else if (direction == Position3.down) {
+                Debug.Log($"Below distribution was chosen");
                 belowDistributions.TryGetValue(previousBlock, out distr);
             } else {
                 throw new Exception("ERROR: direction vector is broken");
             }
+            
+            Debug.Log($"Distribution is {ToString(distr)}");
 
             return distr;
         }
