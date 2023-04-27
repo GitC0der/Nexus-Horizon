@@ -15,7 +15,7 @@ public class CameraController : MonoBehaviour
 
         transform.Translate(new Vector3(horizontal, updown, vertical) * moveSpeed * Time.deltaTime);
 
-		// Rotational movement
+        // Rotational movement
         if (Input.GetKey(KeyCode.LeftArrow)) {
             transform.Rotate(Vector3.up, -rotationSpeedLR * Time.deltaTime);
         } else if (Input.GetKey(KeyCode.RightArrow)) {

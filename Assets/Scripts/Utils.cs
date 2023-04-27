@@ -6,9 +6,8 @@ using UnityEngine;
 namespace DefaultNamespace
 {
 
-    public static class DebugUtils
+    public static class Utils
     {
-
         public static string ToString<T>(List<T> list, Func<T, string> toString) {
             if (list.Count == 0) {
                 return $"List[_EMPTY_]";

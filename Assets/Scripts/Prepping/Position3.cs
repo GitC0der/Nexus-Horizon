@@ -1,5 +1,4 @@
 ﻿using System;
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Prepping
@@ -49,6 +48,15 @@ namespace Prepping
         public Vector3 To(Position3 position) => AsVector3(position - this);
 
         public override string ToString() => $"({x}, {y}, {z})";
+        
+        public override bool Equals(object obj) {
+            if (obj == null) return false;
+            return this == (Position3)obj;
+        }
+
+        public override int GetHashCode() {
+            return HashCode.Combine(x, y, z);
+        }
         
     }
 }

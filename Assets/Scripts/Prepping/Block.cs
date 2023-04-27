@@ -5,8 +5,8 @@ namespace Prepping
     public enum Block
     {
         NULL,
+        Void,
         Building,
-        Park, 
-        Void
+        Park
     }
 }

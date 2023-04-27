@@ -1,0 +1,13 @@
+b,b,b,b,b,b,b,b,b,b
+b,b,b,b,b,b,b,b,b,b
+b,b,b,b,b,b,b,b,b,b
+b,b,b,b,b,b,b,b,b,b
+b,b,b,b,b,b,b,b,b,b
+b,b,b,b,b,b,b,b,b,b
+b,b,b,b,b,b,b,b,b,b
+b,b,b,b,b,b,b,b,b,b
+b,b,b,b,b,b,b,b,b,b
+
+v,v,b,b,b,b,b,b,b,v
+v,v,b,b,b,b,b,b,b,v
+v,v,b,b,b,b,b,b,b,v
