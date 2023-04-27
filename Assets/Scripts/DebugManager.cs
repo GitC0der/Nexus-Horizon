@@ -16,13 +16,19 @@ namespace DefaultNamespace
             if (Enabled) {
                 
                 WaveFunctionCollapse.TEST_Subtiles();
+                WaveFunctionCollapse.TEST_Queue();
                 
                 var generator = new WaveFunctionCollapse(WaveFunctionCollapse.ExampleTile);
+                int slotsCOunt = 1;
                 while (!generator.IsDone()) {
+                    if (slotsCOunt == 26) {
+                        var debug = "dewifwefwiefbwiefbwf";
+                    }
                     generator.GenerateNextSlot();
+                    ++slotsCOunt;
                 }
 
-                Debug.Log(generator.OutputToString());
+                Debug.Log($"-------------\n DONE! Here's the result: {generator.OutputToString()}");
             }
         }
 

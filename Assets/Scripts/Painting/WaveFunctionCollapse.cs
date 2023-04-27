@@ -23,6 +23,8 @@ namespace Painting
         public const char EMPTY_CHAR = '?';
         public const char ERROR_CHAR = '@';
         public const int DIMENSION = 3;
+
+        private const int ENTROPY_COMPLETE = int.MaxValue;
         private const bool IS_BORDERLESS = false;
         private Tile input;
         private List<Tile> tiles;
@@ -41,7 +43,28 @@ namespace Painting
             "XXX-",
             "----"
         });
+
+        public static readonly Tile easyTest = new Tile(new string[] {
+            "XXXXX",
+            "OOOOO",
+            "XXXXX",
+            "OOOOO",
+            "XXXXX"
+        });
         
+        public static readonly Tile mediumTest = new Tile(new string[] {
+            "---X------",
+            "---X------",
+            "oooXoooooo",
+            "---X------",
+            "---X------",
+            "oooXoooooo",
+            "---X------",
+            "---X------",
+            "---X------",
+            "---X------"
+        });
+
         public static readonly Tile ExampleTile = new Tile(new string[] {
             "---o----X-",
             "XXXoXXXXX-",
@@ -54,7 +77,7 @@ namespace Painting
             "--X-------",
             "--X-------"
         });
-        
+
         /*
         public WaveFunctionCollapse(Tile inputMap, int dimension) {
             if (inputMap.Height() < dimension || inputMap.Width() < dimension) {
@@ -84,12 +107,14 @@ namespace Painting
             possibilities = new Dictionary<Position2, List<Tile>>();
             queue = new PriorityQueue<Position2>();
             entropies = new Dictionary<Position2, int>();
-            for (int x = 0; x < inputMap.Width() - DIMENSION + 1; x++) {
-                for (int y = 0; y < inputMap.Height() - DIMENSION + 1; y++) {
+            for (int x = 0; x < inputMap.Width(); x++) {
+                for (int y = 0; y < inputMap.Height(); y++) {
                     Position2 position = new Position2(x, y);
-                    possibilities.Add(position, new List<Tile>(tiles));
-                    queue.Enqueue(position, tiles.Count);
-                    entropies.Add(position, tiles.Count);
+                    if ( x < inputMap.Width() - DIMENSION + 1 && y < inputMap.Height() - DIMENSION + 1) {
+                        possibilities.Add(position, new List<Tile>(tiles));
+                    }
+                    queue.Enqueue(position, inputChars.Count);
+                    entropies.Add(position, inputChars.Count);
                 }
             }
             
@@ -99,7 +124,8 @@ namespace Painting
             int x = Random.Range(0, inputMap.Width());
             */
             //TODO: Fix this
-            SetCharAndUpdate(new Position2(3,3), 'X');
+            SetCharAndUpdatePossibilities(new Position2(3,3), 'X');
+            UpdateEntropies(new Position2(3,3), 'X');
             //output.SetChar(new Position2(3,3), 'X');
 
         }
@@ -127,24 +153,87 @@ namespace Painting
             */
             if (isDone) throw new ArgumentException("Attempting to generate tile while the generator is done");
 
-            Position2 slot = queue.Dequeue();
-            Dictionary<Position2, Tile> containingSlot = output.SubTilesContaining(slot, DIMENSION);
-            List<List<char>> listOfPossibleChars = new List<List<char>>();
-
-            if (entropies[slot] == 0) {
-                SetCharAndUpdate(slot, ERROR_CHAR);
-                return;
+            if (entropies[queue.Peek()] == 0) {
+                SetCharAndUpdatePossibilities(queue.Peek(), ERROR_CHAR);
+                Debug.Log($"ERROR: No possible character at {queue.Peek()}");
             }
             
-            foreach (var (position, tile) in containingSlot) {
+            // TODO: DEBUG. FIX THIS
+            Position2 slot = queue.Dequeue();
+
+            /*
+            int lowestPriority = int.MaxValue;
+            Position2 slot = new Position2(-1, -1);
+            foreach (var (pos, priority) in entropies) {
+                if (priority < lowestPriority) {
+                    lowestPriority = priority;
+                    slot = pos;
+                }
+            }
+            */
+            
+            if (entropies[slot] == 0) {
+                SetCharAndUpdatePossibilities(slot, ERROR_CHAR);
+                return;
+            }
+
+            List<char> possibleChars = PossibleChars(slot);
+
+            char pickedChar;
+            
+            // TODO: Debugging. Reverse this
+            
+            if (possibleChars.Count != 0) {
+                int count = possibleChars.Count;
+                if (count == 3) {
+                    pickedChar = possibleChars[2];
+                } else if (count == 2){
+                    pickedChar = possibleChars[1];
+                }
+                else {
+                    pickedChar = possibleChars[0];
+                }
+                
+                //pickedChar = possibleChars[Random.Range(0, possibleChars.Count)];
+            } else {
+                pickedChar = ERROR_CHAR;
+            }
+            
+            // TODO: DEBUG. FIX THIS
+            //entropies[slot] = int.MaxValue;
+            //queue.Update(slot, int.MaxValue);
+            
+            /*
+            if (possibleChars.Count != 0) {
+                pickedChar = possibleChars[Random.Range(0, possibleChars.Count)];
+            }
+            else {
+                pickedChar = ERROR_CHAR;
+            }
+            */
+            
+
+            SetCharAndUpdatePossibilities(slot, pickedChar);
+            UpdateEntropies(slot, DIMENSION);
+            
+            if (queue.Count == 0) {
+                isDone = true;
+            }
+        }
+
+        private List<char> PossibleChars(Position2 p) {
+            Dictionary<Position2, Tile> containingP = output.SubTilesContaining(p, DIMENSION);
+            List<List<char>> listOfPossibleChars = new List<List<char>>();
+            
+            foreach (var (position, tile) in containingP) {
                 List<char> characters = new List<char>();
-                if (!output.IsInside(slot + position)) {
+                if (!output.IsInside(p + position)) {
                     throw new Exception("FATAL ERROR: everything is broken. THat is physically not possible");
                 }
 
                 List<Tile> possibleTiles;
                 try {
-                    possibleTiles = possibilities[slot + position];
+                    possibleTiles = possibilities[p + position];
                 }
                 catch {
                     throw new Exception("EXTREMELY WEIRD THING HAPPENED. PROGRAM BROKEN");
@@ -170,28 +259,14 @@ namespace Painting
                 if (isInAll) possibleChars.Add(inputChar);
             }
 
-            char pickedChar;
-            if (possibleChars.Count != 0) {
-                pickedChar = possibleChars[Random.Range(0, possibleChars.Count)];
-            }
-            else {
-                pickedChar = ERROR_CHAR;
-            }
-            
-
-            SetCharAndUpdate(slot, pickedChar);
-            
-            if (queue.Count == 0) {
-                isDone = true;
-            }
+            return possibleChars;
         }
-
-
-        private void SetCharAndUpdate(Position2 p, char newChar) {
+        
+        private void SetCharAndUpdatePossibilities(Position2 p, char newChar) {
             output.SetChar(p, newChar);
-            Dictionary<Position2, Tile> containingSlot = output.SubTilesContaining(p, DIMENSION);
+            Dictionary<Position2, Tile> tilesContainingP = output.SubTilesContaining(p, DIMENSION);
             List<Tile> removedTiles = new List<Tile>();
-            foreach (var (position, tile) in containingSlot) {
+            foreach (var (position, tile) in tilesContainingP) {
                 List<Tile> possibleTiles = possibilities[p + position];
                 foreach (Tile possibleTile in possibleTiles) {
                     char c = possibleTile.CharAt(-position);
@@ -200,12 +275,40 @@ namespace Painting
                         removedTiles.Add(possibleTile);
                     }
                 }
-
+                
                 possibleTiles.RemoveAll(c => removedTiles.Contains(c));
-                entropies[p + position] = possibleTiles.Count;
-                queue.Update(p + position, possibleTiles.Count); 
+                possibilities[p + position] = possibleTiles;
+
+                // TODO: Improve this
                 removedTiles = new List<Tile>();
             }
+        }
+
+        // TODO: Prefer width and height over dimension
+        public void UpdateEntropies(Position2 p, int dimension) {
+            for (int x = p.x - dimension + 1; x < p.x + dimension - 1; x++) {
+                for (int y = p.y - dimension + 1; y < p.y + dimension - 1; y++) {
+                    Position2 position = new Position2(x, y);
+                    if (output.IsInside(position)) {
+                        List<char> possibleChars = PossibleChars(position);
+                        // TODO: DEBUG
+                        if (possibleChars.Count == 0) {
+                            Debug.Log($"No possible char at {position}");
+                        }
+                        entropies[position] = possibleChars.Count;
+                        queue.Update(position, possibleChars.Count);
+                    }
+                }
+            }
+            
+            //TODO: Fix this
+            entropies[p] = ENTROPY_COMPLETE;
+            queue.Update(p, ENTROPY_COMPLETE);
+            
+
+
+
+
         }
 
         public bool IsDone() => isDone;
@@ -458,6 +561,32 @@ namespace Painting
             generator.output.SubTilesContaining(new Position2(9,9), 3);  // should be 1
             generator.output.SubTilesContaining(new Position2(0, 0), 3);  // should be 1
             generator.output.SubTilesContaining(new Position2(1, 2), 3);  // should be 6
+        }
+
+        public static void TEST_Queue() {
+            Tile tile1 = new Tile(new string[] {
+                "----",
+                "----",
+                "----",
+                "-X--",
+            });
+            Tile tile2 = new Tile(new string[] {
+                "----",
+                "----",
+                "----",
+                "-X--",
+            });
+            Tile tile3 = new Tile(new string[] {
+                "ABCE",
+                "----",
+                "----",
+                "ZEGZ",
+            });
+
+            var queue = new PriorityQueue<Tile>();
+            queue.Enqueue(tile1, 43);
+            queue.Enqueue(tile3, 23);
+            queue.Update(tile2, 1);
         }
     }
 }
