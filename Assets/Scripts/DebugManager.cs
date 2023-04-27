@@ -18,10 +18,10 @@ namespace DefaultNamespace
                 WaveFunctionCollapse.TEST_Subtiles();
                 WaveFunctionCollapse.TEST_Queue();
                 
-                var generator = new WaveFunctionCollapse(WaveFunctionCollapse.ExampleTile);
+                var generator = new WaveFunctionCollapse(WaveFunctionCollapse.HugeExample, 30, 30);
                 int slotsCOunt = 1;
                 while (!generator.IsDone()) {
-                    if (slotsCOunt == 26) {
+                    if (slotsCOunt == 16) {
                         var debug = "dewifwefwiefbwiefbwf";
                     }
                     generator.GenerateNextSlot();

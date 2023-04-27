@@ -22,7 +22,7 @@ namespace Painting
     {
         public const char EMPTY_CHAR = '?';
         public const char ERROR_CHAR = '@';
-        public const int DIMENSION = 3;
+        public const int DIMENSION = 4;
 
         private const int ENTROPY_COMPLETE = int.MaxValue;
         private const bool IS_BORDERLESS = false;
@@ -37,34 +37,6 @@ namespace Painting
         private Dictionary<Position2, List<Tile>> possibilities;
         private Dictionary<Position2, int> entropies;
 
-        public static readonly Tile manualTest = new Tile(new string[] {
-            "--X-",
-            "--X-",
-            "XXX-",
-            "----"
-        });
-
-        public static readonly Tile easyTest = new Tile(new string[] {
-            "XXXXX",
-            "OOOOO",
-            "XXXXX",
-            "OOOOO",
-            "XXXXX"
-        });
-        
-        public static readonly Tile mediumTest = new Tile(new string[] {
-            "---X------",
-            "---X------",
-            "oooXoooooo",
-            "---X------",
-            "---X------",
-            "oooXoooooo",
-            "---X------",
-            "---X------",
-            "---X------",
-            "---X------"
-        });
-
         public static readonly Tile ExampleTile = new Tile(new string[] {
             "---o----X-",
             "XXXoXXXXX-",
@@ -77,6 +49,42 @@ namespace Painting
             "--X-------",
             "--X-------"
         });
+        
+        public static readonly Tile Example2Tile = new Tile(new string[] {
+            "-XOX------",
+            "-XOX------",
+            "-XOX------",
+            "-XOX------",
+            "-XOXXXXX--",
+            "-XOOOOOX--",
+            "-XXXXXOX--",
+            "-----XOX--",
+            "-----XOX--",
+            "-----XOX--"
+        });
+        
+        public static readonly Tile HugeExample = new Tile(new string[] {
+            "--X------X----------",
+            "--X------XXXXXXX----",
+            "--X------------X----",
+            "--XXXXXX-------XXX--",
+            "-------X---------X--",
+            "ooooooooooo------X--",
+            "-------X--o----ooooo",
+            "-------X--o----o-X--",
+            "XXXXXXXX--o----o-XXX",
+            "----------o----o----",
+            "XXX-------oooooooooo",
+            "--X-----------------",
+            "oooooo--------------",
+            "--X--o-ooooooooooooo",
+            "--X--ooo------------",
+            "--X-----------------",
+            "--X-------oooooo----",
+            "--XXXXX---o----o----",
+            "------X---o----ooooo",
+            "------X---o---------"
+        });
 
         /*
         public WaveFunctionCollapse(Tile inputMap, int dimension) {
@@ -84,7 +92,7 @@ namespace Painting
                 throw new ArgumentException($"Dimension must be bigger than both length and width of input map!");
             }
         */
-        public WaveFunctionCollapse(Tile inputMap) {
+        public WaveFunctionCollapse(Tile inputMap, int outputWidth, int outputHeight) {
             tiles = new List<Tile>();
             for (int row = 0; row <= inputMap.Height() - DIMENSION; row++) {
                 for (int col = 0; col <= inputMap.Width() - DIMENSION; col++) {
@@ -102,7 +110,9 @@ namespace Painting
             tiles_distinct = tiles.Distinct().ToList();
             isDone = false;
             
+            // TODO: Allow for specified width and height
             output = new Tile(inputMap.Height(), inputMap.Width());
+            //output = new Tile(outputHeight, outputWidth);
 
             possibilities = new Dictionary<Position2, List<Tile>>();
             queue = new PriorityQueue<Position2>();
@@ -124,8 +134,7 @@ namespace Painting
             int x = Random.Range(0, inputMap.Width());
             */
             //TODO: Fix this
-            SetCharAndUpdatePossibilities(new Position2(3,3), 'X');
-            UpdateEntropies(new Position2(3,3), 'X');
+            SetCharAndUpdateAll(new Position2(3, 3), 'X');
             //output.SetChar(new Position2(3,3), 'X');
 
         }
@@ -154,8 +163,10 @@ namespace Painting
             if (isDone) throw new ArgumentException("Attempting to generate tile while the generator is done");
 
             if (entropies[queue.Peek()] == 0) {
-                SetCharAndUpdatePossibilities(queue.Peek(), ERROR_CHAR);
+                //SetCharAndUpdatePossibilities(queue.Peek(), ERROR_CHAR);
+                SetCharAndUpdateAll(queue.Peek(), ERROR_CHAR);
                 Debug.Log($"ERROR: No possible character at {queue.Peek()}");
+                return;
             }
             
             // TODO: DEBUG. FIX THIS
@@ -171,11 +182,6 @@ namespace Painting
                 }
             }
             */
-            
-            if (entropies[slot] == 0) {
-                SetCharAndUpdatePossibilities(slot, ERROR_CHAR);
-                return;
-            }
 
             List<char> possibleChars = PossibleChars(slot);
 
@@ -213,8 +219,7 @@ namespace Painting
             */
             
 
-            SetCharAndUpdatePossibilities(slot, pickedChar);
-            UpdateEntropies(slot, DIMENSION);
+            SetCharAndUpdateAll(slot, pickedChar);
             
             if (queue.Count == 0) {
                 isDone = true;
@@ -261,6 +266,11 @@ namespace Painting
 
             return possibleChars;
         }
+
+        private void SetCharAndUpdateAll(Position2 p, char newChar) {
+            SetCharAndUpdatePossibilities(p, newChar);
+            UpdateEntropies(p, DIMENSION);
+        }
         
         private void SetCharAndUpdatePossibilities(Position2 p, char newChar) {
             output.SetChar(p, newChar);
@@ -271,9 +281,12 @@ namespace Painting
                 foreach (Tile possibleTile in possibleTiles) {
                     char c = possibleTile.CharAt(-position);
                     // TODO: Handle error chars
-                    if (!(c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR)) {
+                    //if (!(c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR)) {
+                    if (!(c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR) && !(newChar == ERROR_CHAR || newChar == EMPTY_CHAR)) {
                         removedTiles.Add(possibleTile);
                     }
+
+                   
                 }
                 
                 possibleTiles.RemoveAll(c => removedTiles.Contains(c));
@@ -295,8 +308,11 @@ namespace Painting
                         if (possibleChars.Count == 0) {
                             Debug.Log($"No possible char at {position}");
                         }
-                        entropies[position] = possibleChars.Count;
-                        queue.Update(position, possibleChars.Count);
+
+                        if (entropies[position] != ENTROPY_COMPLETE) {
+                            entropies[position] = possibleChars.Count;
+                            queue.Update(position, possibleChars.Count);
+                        }
                     }
                 }
             }
@@ -557,7 +573,7 @@ namespace Painting
         }
 
         public static void TEST_Subtiles() {
-            var generator = new WaveFunctionCollapse(ExampleTile);
+            var generator = new WaveFunctionCollapse(ExampleTile, 10, 10);
             generator.output.SubTilesContaining(new Position2(9,9), 3);  // should be 1
             generator.output.SubTilesContaining(new Position2(0, 0), 3);  // should be 1
             generator.output.SubTilesContaining(new Position2(1, 2), 3);  // should be 6
