@@ -110,11 +110,67 @@ public class GameManager : MonoBehaviour {
         }
         
     }
-
-    private void DefineFacades() {
+    
+    private List<List<Position3>> FindFacades() {
         /*
-         * 
+         * – Create and a list "allFacades" (a list of all facades)
+         * – Create a set "allFacadePositions" (a set of the positions of all blocks present
+         *   in at least one facade)
+         * – For every block in block box of type "void":
+         *      – If currentBlock is of type void, get its neighbours.
+         *          – If there is at least one neighbour of type "building":
+         *              – Create an empty list "facade"
+         *              – For every "building" block adjacent to currentBlock:
+         *                  – If that block is already in allFacadeBlocks, skip it.
+         *                  – Do a BFS and add the resulting blocks to facade.
+         *              – If facade is nonempty, add facade to allFacades
          */
+        List<List<Position3>> allFacades = new List<List<Position3>>();
+        HashSet<Position3> allFacadePositions = new HashSet<Position3>();
+        for (int i = 0; i < blockbox.sizeX; i++) {
+            for (int j = 0; j < blockbox.sizeY; j++) {
+                for (int k = 0; k < blockbox.sizeZ; k++) {
+                    Position3 currentPos = new Position3(i, j, k);
+                    Block currentBlock = blockbox.BlockAt(currentPos);
+                    
+                    // Skip all blocks but the void ones
+                    if (currentBlock == Block.Void) {
+                        Dictionary<Position3, Block> neighbours = blockbox.GetNeighbors(currentPos);
+
+                        // Only keep blocks of type "building"
+                        foreach (var (neighbourPos, neighbourBlock) in neighbours) {
+                            if (neighbourBlock != Block.Building) {
+                                neighbours.Remove(neighbourPos);
+                            }
+                        }
+                        
+                        // Only continue if at there is at least one neighbour remaining
+                        if (neighbours.Count > 0) {
+                            foreach (var (neighbourPos, _) in neighbours) {
+                                if (!allFacadePositions.Contains(neighbourPos)) {
+                                    List<Position3> facade = BFS();
+                                    
+                                    // Add the positions of the new facade blocks to the set
+                                    foreach (var pos in facade) {
+                                        allFacadePositions.Add(pos);
+                                    }
+                                     
+                                    // Add the facade to the list of all facades
+                                    allFacades.Add(facade);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return allFacades;
+    }
+
+    // Todo: Implement BFS
+    private List<Position3> BFS() {
+        return new List<Position3>();
     }
 
     private void GenerateFacade() {
