@@ -176,37 +176,6 @@ namespace Prepping.Generators
             previousPosition = position;
             return position;
         }
-
-        private class Cuboid
-        {
-            private Position3 corner1;
-            private Position3 corner2;
-            
-            public const int MinCuboidHeight = 6;
-            public const int MaxCuboidHeight = 30;
-            public const int MinCuboidWidthX = 6;
-            public const int MaxCuboidWidthX = 20;
-            public const int MinCuboidWidthZ = 6;
-            public const int MaxCuboidWidthZ = 15;
-            public const int MinCuboidVolume = 20;
-            public const int MaxCuboidVolume = 2000;
-
-            public Cuboid(Position3 corner1, Position3 corner2) {
-                this.corner1 = corner1;
-                this.corner2 = corner2;
-            }
-
-            public Cuboid(Position3 startPos, int sizeX, int sizeY, int sizeZ) :
-                this(startPos, startPos + new Position3(sizeX, sizeY, sizeZ)) {
-                
-            }
-
-            public Position3 RandomInside() {
-                int x = Random.Range(corner1.x, corner2.x + 1);
-                int y = Random.Range(corner1.y, corner2.y + 1);
-                int z = Random.Range(corner1.z, corner2.z + 1);
-                return new Position3(x, y, z);
-            }
-        }
+        
     }
 }

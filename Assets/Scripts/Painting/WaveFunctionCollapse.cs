@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DefaultNamespace;
+using Prepping;
 //using NUnit.Framework;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -12,57 +13,47 @@ using Random = UnityEngine.Random;
 namespace Painting
 {
     
-    
-    // TODO 1) Turn all string[] into List<char[]>
-    // TODO 2) Complete no arg constructor in TileMap
-    // TODO 3) Create SetChar in TileMap
-    // TODO 4) Complete the WaveFunctionCollapse
-
     public class WaveFunctionCollapse
     {
         public const char EMPTY_CHAR = '?';
         public const char ERROR_CHAR = '@';
-        public const int DIMENSION = 4;
+        public const int DIMENSION = 3;
 
         private const int ENTROPY_COMPLETE = int.MaxValue;
         private const bool IS_BORDERLESS = false;
-        private Tile input;
         private List<Tile> tiles;
-        private List<Tile> tiles_distinct;
         private bool isDone;
         private PriorityQueue<Position2> queue;
         private List<char> inputChars;
+
 
         private Tile output;
         private Dictionary<Position2, List<Tile>> possibilities;
         private Dictionary<Position2, int> entropies;
 
-        public static readonly Tile ExampleTile = new Tile(new string[] {
-            "---o----X-",
-            "XXXoXXXXX-",
-            "---o------",
-            "---ooooo--",
-            "-------o--",
-            "--XXXXXoXX",
-            "--X----o--",
-            "oooooooo--",
-            "--X-------",
-            "--X-------"
+        public static readonly Tile Facade1 = new Tile(new string[] {
+            "--------------------",
+            "------WWWW----WWWW--",
+            "--WWWW----WWWW------",
+            "------WWWW----WWWW--",
+            "--WWWW----WWWW------",
+            "--------------------",
+            "--WWWWWWWWW---CCCCCC",
+            "--------------C-----",
+            "--WWWWWWWWW---C-----",
+            "---CCCCCCCCCCCC-----",
+            "---C---WWWW---WWWW--",
+            "---C----------------",
+            "CCCC---WWWW---WWWW--",
+            "--------------------",
+            "--W----WWWWWWWWWWW--",
+            "--------------------",
+            "--W----WWWWWWWWWWW--",
+            "--------------------",
+            "----DD---WWWW--WWWW-",
+            "----DD---WWWW--WWWW-",
         });
-        
-        public static readonly Tile Example2Tile = new Tile(new string[] {
-            "-XOX------",
-            "-XOX------",
-            "-XOX------",
-            "-XOX------",
-            "-XOXXXXX--",
-            "-XOOOOOX--",
-            "-XXXXXOX--",
-            "-----XOX--",
-            "-----XOX--",
-            "-----XOX--"
-        });
-        
+
         public static readonly Tile HugeExample = new Tile(new string[] {
             "--X------X----------",
             "--X------XXXXXXX----",
@@ -85,42 +76,39 @@ namespace Painting
             "------X---o----ooooo",
             "------X---o---------"
         });
-
-        /*
-        public WaveFunctionCollapse(Tile inputMap, int dimension) {
-            if (inputMap.Height() < dimension || inputMap.Width() < dimension) {
-                throw new ArgumentException($"Dimension must be bigger than both length and width of input map!");
-            }
-        */
-        public WaveFunctionCollapse(Tile inputMap, int outputWidth, int outputHeight) {
+        
+        // TODO: Add backtracking
+        /// <summary>
+        ///     Create a WaveFunctionCollapse generator. It receives a pattern as input and tries to reproduce it on an
+        ///     output of given width and height. Sometimes the algorithms fails to find a solution at a specific point
+        ///     and thus generates an error. Backtracking will be implemented later to avoid that. <br></br><br></br>
+        ///     It also needs a first character to be placed. Note that this character should be placed in a coherent location with respect to
+        ///     the input pattern, otherwise errors will happen and the pattern will be broken
+        /// </summary>
+        /// <param name="inputMap">The input pattern</param>
+        /// <param name="outputWidth">The desired width of the output</param>
+        /// <param name="outputHeight">The desired height</param>
+        /// <param name="initPos">The position of the first character to be placed</param>
+        /// <param name="initChar">The first character to be placed</param>
+        public WaveFunctionCollapse(Tile inputMap, int outputWidth, int outputHeight, Position2 initPos, char initChar) {
             tiles = new List<Tile>();
-            for (int row = 0; row <= inputMap.Height() - DIMENSION; row++) {
-                for (int col = 0; col <= inputMap.Width() - DIMENSION; col++) {
+            for (int row = 0; row <= inputMap.Width() - DIMENSION; row++) {
+                for (int col = 0; col <= inputMap.Height() - DIMENSION; col++) {
                     tiles.Add(inputMap.GetSubTile(new Position2(col, row), new Position2(col + DIMENSION - 1, row + DIMENSION - 1), false));
                 }
             }
             
-            Debug.Log(tiles[0]);
-            Debug.Log(tiles[5]);
-
-            this.input = inputMap;
             inputChars = inputMap.GetChars();
-            
-            // TODO: Fix tiles_distinct
-            tiles_distinct = tiles.Distinct().ToList();
-            isDone = false;
-            
-            // TODO: Allow for specified width and height
-            output = new Tile(inputMap.Height(), inputMap.Width());
-            //output = new Tile(outputHeight, outputWidth);
+
+            output = new Tile(outputHeight, outputWidth);
 
             possibilities = new Dictionary<Position2, List<Tile>>();
             queue = new PriorityQueue<Position2>();
             entropies = new Dictionary<Position2, int>();
-            for (int x = 0; x < inputMap.Width(); x++) {
-                for (int y = 0; y < inputMap.Height(); y++) {
+            for (int x = 0; x < outputWidth; x++) {
+                for (int y = 0; y < outputHeight; y++) {
                     Position2 position = new Position2(x, y);
-                    if ( x < inputMap.Width() - DIMENSION + 1 && y < inputMap.Height() - DIMENSION + 1) {
+                    if ( x < outputWidth - DIMENSION + 1 && y < outputHeight - DIMENSION + 1) {
                         possibilities.Add(position, new List<Tile>(tiles));
                     }
                     queue.Enqueue(position, inputChars.Count);
@@ -128,23 +116,37 @@ namespace Painting
                 }
             }
             
-
-            /*
-            int y = Random.Range(0, inputMap.Length());
-            int x = Random.Range(0, inputMap.Width());
-            */
-            //TODO: Fix this
-            SetCharAndUpdateAll(new Position2(3, 3), 'X');
-            //output.SetChar(new Position2(3,3), 'X');
+            SetCharAndUpdateAll(initPos, initChar);
 
         }
-
+        
+        /// <summary>
+        ///     Simply returns the output as a string. For visualization purposes only! Use GetOutput otherwise
+        /// </summary>
+        /// <returns></returns>
         public string OutputToString() {
             if (!IsDone()) Debug.Log("WARNING: WFC generator is not done! Result will be incomplete");
             return $"{output}";
         }
 
-        public void GenerateNextSlot() {
+        /// <summary>
+        ///     Returns the output character table
+        /// </summary>
+        /// <returns></returns>
+        public char[][] GetOutput() {
+            if (!isDone) Debug.Log("WARNING: WFC generator is not done! Result will be incomplete");
+            return output.GetTable();
+        }
+        
+        /// <summary>
+        ///     Generate the next character. The position with the fewest possibilities (i.e the lowest entropy) will
+        ///     be selected, and one of the possible character will be randomly selected. For now the probability distribution
+        ///     of the possible character is linear, it could be changed later. <br></br>
+        ///    
+        /// </summary>
+        /// <returns>The char that has just been placed</returns>
+        /// <exception cref="ArgumentException"></exception>
+        public char GenerateNextSlot() {
             /*
                 - Choose the position with the lowest entropy
                 - For each tile that contains this position
@@ -153,7 +155,7 @@ namespace Painting
                         - Add the character at this position to the list
                 - Create a list that contains all characters that appear in each and every of the previously mentioned list
                 - Pick a random character inside this list
-                
+            
                 - For each tile that contains this position
                     - For each of its possible tiles
                         - Remove tile if the character at this position is not the same as the randomly chosen one
@@ -163,25 +165,12 @@ namespace Painting
             if (isDone) throw new ArgumentException("Attempting to generate tile while the generator is done");
 
             if (entropies[queue.Peek()] == 0) {
-                //SetCharAndUpdatePossibilities(queue.Peek(), ERROR_CHAR);
                 SetCharAndUpdateAll(queue.Peek(), ERROR_CHAR);
                 Debug.Log($"ERROR: No possible character at {queue.Peek()}");
-                return;
+                return ERROR_CHAR;
             }
             
-            // TODO: DEBUG. FIX THIS
             Position2 slot = queue.Dequeue();
-
-            /*
-            int lowestPriority = int.MaxValue;
-            Position2 slot = new Position2(-1, -1);
-            foreach (var (pos, priority) in entropies) {
-                if (priority < lowestPriority) {
-                    lowestPriority = priority;
-                    slot = pos;
-                }
-            }
-            */
 
             List<char> possibleChars = PossibleChars(slot);
 
@@ -190,40 +179,16 @@ namespace Painting
             // TODO: Debugging. Reverse this
             
             if (possibleChars.Count != 0) {
-                int count = possibleChars.Count;
-                if (count == 3) {
-                    pickedChar = possibleChars[2];
-                } else if (count == 2){
-                    pickedChar = possibleChars[1];
-                }
-                else {
-                    pickedChar = possibleChars[0];
-                }
-                
-                //pickedChar = possibleChars[Random.Range(0, possibleChars.Count)];
+                pickedChar = possibleChars[Random.Range(0, possibleChars.Count)];
             } else {
                 pickedChar = ERROR_CHAR;
             }
             
-            // TODO: DEBUG. FIX THIS
-            //entropies[slot] = int.MaxValue;
-            //queue.Update(slot, int.MaxValue);
-            
-            /*
-            if (possibleChars.Count != 0) {
-                pickedChar = possibleChars[Random.Range(0, possibleChars.Count)];
-            }
-            else {
-                pickedChar = ERROR_CHAR;
-            }
-            */
-            
-
             SetCharAndUpdateAll(slot, pickedChar);
             
-            if (queue.Count == 0) {
-                isDone = true;
-            }
+            if (queue.Count == 0) isDone = true;
+
+            return pickedChar;
         }
 
         private List<char> PossibleChars(Position2 p) {
@@ -243,8 +208,6 @@ namespace Painting
                 catch {
                     throw new Exception("EXTREMELY WEIRD THING HAPPENED. PROGRAM BROKEN");
                 }
-                
-                
                 
                 foreach (Tile possibleTile in possibleTiles) {
                     characters.Add(possibleTile.CharAt(-position));
@@ -280,8 +243,6 @@ namespace Painting
                 List<Tile> possibleTiles = possibilities[p + position];
                 foreach (Tile possibleTile in possibleTiles) {
                     char c = possibleTile.CharAt(-position);
-                    // TODO: Handle error chars
-                    //if (!(c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR)) {
                     if (!(c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR) && !(newChar == ERROR_CHAR || newChar == EMPTY_CHAR)) {
                         removedTiles.Add(possibleTile);
                     }
@@ -317,13 +278,8 @@ namespace Painting
                 }
             }
             
-            //TODO: Fix this
             entropies[p] = ENTROPY_COMPLETE;
             queue.Update(p, ENTROPY_COMPLETE);
-            
-
-
-
 
         }
 
@@ -335,11 +291,11 @@ namespace Painting
 
         public class Tile
         {
-            protected char[][] table;
-            protected HashSet<char> characters;
+            private char[][] table;
+            private HashSet<char> characters;
 
-            protected int width;
-            protected int height;
+            private int width;
+            private int height;
 
             internal Tile(char[][] table, HashSet<char> characters, int width, int height) {
                 this.table = table;
@@ -415,7 +371,7 @@ namespace Painting
                 }
 
                 if (!(0 <= topLeftCol && topLeftCol <= this.width - width && 0 <= topLeftRow && topLeftRow <= this.height - height)) {
-                    //throw new ArgumentException("topLeftCol or topLeftRow are invalid: the tile is sticking out of the table!");
+                    throw new ArgumentException("topLeftCol or topLeftRow are invalid: the tile is sticking out of the table!");
                 }
 
                 char[][] newTable = new char[height][];
@@ -430,13 +386,6 @@ namespace Painting
                     }
                 }
 
-                /*
-                char[][] newTable = new char[height][];
-                for (int i = 0; i < height; i++) {
-                    newTable[i] = ExtractInLine(i + topLeftRow, topLeftCol, topLeftCol + height - 1);
-                }
-                */
-                
                 var newCharacters = new HashSet<char>();
                 return new Tile(newTable, newCharacters, width, height);
             }
@@ -556,53 +505,6 @@ namespace Painting
 
                 return true;
             }
-        }
-
-        public class Bitmap : Tile
-        {
-            public Bitmap(char[][] table, HashSet<char> characters, int width, int height) : base(table, characters, width, height) { }
-            
-            public bool SetChar(Position2 position, char newChar) {
-                if (!IsInside(position)) {
-                    return false;
-                }
-
-                table[position.y][position.x] = newChar;
-                return true;
-            }
-        }
-
-        public static void TEST_Subtiles() {
-            var generator = new WaveFunctionCollapse(ExampleTile, 10, 10);
-            generator.output.SubTilesContaining(new Position2(9,9), 3);  // should be 1
-            generator.output.SubTilesContaining(new Position2(0, 0), 3);  // should be 1
-            generator.output.SubTilesContaining(new Position2(1, 2), 3);  // should be 6
-        }
-
-        public static void TEST_Queue() {
-            Tile tile1 = new Tile(new string[] {
-                "----",
-                "----",
-                "----",
-                "-X--",
-            });
-            Tile tile2 = new Tile(new string[] {
-                "----",
-                "----",
-                "----",
-                "-X--",
-            });
-            Tile tile3 = new Tile(new string[] {
-                "ABCE",
-                "----",
-                "----",
-                "ZEGZ",
-            });
-
-            var queue = new PriorityQueue<Tile>();
-            queue.Enqueue(tile1, 43);
-            queue.Enqueue(tile3, 23);
-            queue.Update(tile2, 1);
         }
     }
 }

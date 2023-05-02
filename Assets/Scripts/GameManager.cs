@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Data;
+using Painting;
 using Prepping;
 using Prepping.Generators;
 using UnityEngine.Rendering;
@@ -77,6 +78,7 @@ public class GameManager : MonoBehaviour {
             //CombineMeshes();
         }
         
+        GenerateFacade();
     }
     
     // Update is called once per frame
@@ -107,7 +109,53 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        
+    }
+
+    private void DefineFacades() {
+        /*
+         * 
+         */
+    }
+
+    private void GenerateFacade() {
+        int height = 50;
+        int width = 15;
+        Position3 origin = new Position3(-height, 0, -width);
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade1, width, height, new Position2(2, 48), 'D');
+        while (!wfc.IsDone()) {
+            wfc.GenerateNextSlot();
+        }
+
+        char[][] table = wfc.GetOutput();
+        for (int x = 0; x < table[0].Length; x++) {
+            for (int y = 0; y < table.Length; y++) {
+                char c = table[y][x];
+                GameObject pref = null;
+                switch (c) {
+                    case 'D':
+                        pref = trainPrefab;
+                        break;
+                    case 'W':
+                        pref = skybridgePrefab;
+                        break;
+                    case 'C':
+                        pref = parkPrefab;
+                        break;
+                    case '-':
+                        pref = buildingPrefab;
+                        break;
+                    case '@':
+                        break;
+                    default:
+                        break;
+                }
+
+                if (pref != null) {
+                    GameObject obj = Instantiate(pref, new Position3(origin.x - x,origin.y - y, -10).AsVector3(), Quaternion.identity);
+                    cubes.Add(obj);
+                }
+            }
+        }
     }
 
     private void SpawnBlocks() {

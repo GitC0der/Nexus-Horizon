@@ -27,5 +27,7 @@ public class CameraController : MonoBehaviour
         } else if (Input.GetKey(KeyCode.DownArrow)) {
             transform.Rotate(Vector3.right, rotationSpeedUD * Time.deltaTime);
         }
+        
+
     }
 }
