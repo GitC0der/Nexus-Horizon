@@ -8,6 +8,9 @@
 obj/
 *log
 
+# Meta files in empty directories: must NOT be tracked
+*/.meta
+
 # Visual Studio files
 *.sln
 *.csproj
