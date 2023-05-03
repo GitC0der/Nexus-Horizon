@@ -133,8 +133,8 @@ public class GameManager : MonoBehaviour {
                     Position3 currentPos = new Position3(i, j, k);
                     Block currentBlock = blockbox.BlockAt(currentPos);
                     
-                    // Skip all blocks but the void ones
-                    if (currentBlock == Block.Void) {
+                    // Skip all blocks but the null ones
+                    if (currentBlock == Block.NULL) {
                         Dictionary<Position3, Block> neighbours = blockbox.GetNeighbors(currentPos);
 
                         // Only keep blocks of type "building"
@@ -148,6 +148,7 @@ public class GameManager : MonoBehaviour {
                         if (neighbours.Count > 0) {
                             foreach (var (neighbourPos, _) in neighbours) {
                                 if (!allFacadePositions.Contains(neighbourPos)) {
+                                    // Call the BFS to find all the positions of the blocks in the facade
                                     List<Position3> facade = BFS();
                                     
                                     // Add the positions of the new facade blocks to the set
@@ -254,6 +255,18 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         OptimizeBlockBox();
+
+        // Testing FindFacades
+        /*
+        var facades = FindFacades();
+        var subsetOfFacades = facades.Take(10);
+        foreach (var facade in subsetOfFacades) {
+            foreach (var pos in facade) {
+                blockbox.ForceSetBlock(Block.Park, pos);
+            }
+        }
+        */
+
         SpawnBlocks();
         //CombineMeshes();
     }
@@ -293,8 +306,7 @@ public class GameManager : MonoBehaviour {
         }
         foreach (Position3 pos in willBeRemoved) {
             blockbox.ForceSetBlock(Block.Void, pos);
-        }    
-        
+        }
     }
 
     private void CombineMeshes() {
