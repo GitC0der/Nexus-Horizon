@@ -116,7 +116,7 @@ public class GameManager : MonoBehaviour {
          * – Create and a list "allFacades" (a list of all facades)
          * – Create a set "allFacadePositions" (a set of the positions of all blocks present
          *   in at least one facade)
-         * – For every block in block box of type "void":
+         * – For every block in block box of type "null":
          *      – If currentBlock is of type void, get its neighbours.
          *          – If there is at least one neighbour of type "building":
          *              – Create an empty list "facade"
@@ -149,7 +149,7 @@ public class GameManager : MonoBehaviour {
                             foreach (var (neighbourPos, _) in neighbours) {
                                 if (!allFacadePositions.Contains(neighbourPos)) {
                                     // Call the BFS to find all the positions of the blocks in the facade
-                                    List<Position3> facade = BFS();
+                                    List<Position3> facade = BFS(neighbourPos);
                                     
                                     // Add the positions of the new facade blocks to the set
                                     foreach (var pos in facade) {
@@ -170,9 +170,38 @@ public class GameManager : MonoBehaviour {
     }
 
     // Todo: Implement BFS
-    private List<Position3> BFS() {
-        return new List<Position3>();
+    private List<Position3> BFS(Position3 start) {
+        Queue<Position3> queue = new Queue<Position3>();
+        HashSet<Position3> visited = new HashSet<Position3>();
+        List<Position3> facade = new List<Position3>();
+    
+        // Add the starting position to the queue and mark it as visited
+        queue.Enqueue(start);
+        visited.Add(start);
+    
+        while (queue.Count > 0) {
+            Position3 currentPos = queue.Dequeue();
+            facade.Add(currentPos);
+        
+            // Get the neighbors of the current position
+            Dictionary<Position3, Block> neighbours = blockbox.GetNeighbors(currentPos);
+        
+            // Check if the neighbor is a building block and has not been visited before
+            foreach (var (neighbourPos, neighbourBlock) in neighbours) {
+                if (neighbourBlock == Block.Building && !visited.Contains(neighbourPos)) {
+                    // Only add the neighbor if it is in the same plane as the start position
+                    if (neighbourPos.x == start.x) {
+                        queue.Enqueue(neighbourPos);
+                        visited.Add(neighbourPos);
+                    }
+                }
+            }
+        }
+    
+        return facade;
     }
+
+
 
     private void GenerateFacade() {
         int height = 50;
@@ -257,7 +286,7 @@ public class GameManager : MonoBehaviour {
         OptimizeBlockBox();
 
         // Testing FindFacades
-        /*
+        
         var facades = FindFacades();
         var subsetOfFacades = facades.Take(10);
         foreach (var facade in subsetOfFacades) {
@@ -265,7 +294,7 @@ public class GameManager : MonoBehaviour {
                 blockbox.ForceSetBlock(Block.Park, pos);
             }
         }
-        */
+        
 
         SpawnBlocks();
         //CombineMeshes();
