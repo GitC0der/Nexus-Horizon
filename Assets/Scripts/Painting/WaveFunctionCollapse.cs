@@ -151,7 +151,7 @@ namespace Painting
         /// </summary>
         /// <returns></returns>
         public string OutputToString() {
-            if (!IsDone()) Debug.Log("WARNING: WFC generator is not done! Result will be incomplete");
+            //if (!IsDone()) Debug.Log("WARNING: WFC generator is not done! Result will be incomplete");
             return $"{output}";
         }
 
@@ -160,7 +160,7 @@ namespace Painting
         /// </summary>
         /// <returns></returns>
         public char[][] GetOutput() {
-            if (!isDone) Debug.Log("WARNING: WFC generator is not done! Result will be incomplete");
+            //if (!isDone) Debug.Log("WARNING: WFC generator is not done! Result will be incomplete");
             return output.GetTable();
         }
         
@@ -192,7 +192,7 @@ namespace Painting
 
             if (entropies[queue.Peek()] == 0) {
                 SetCharAndUpdateAll(queue.Peek(), ERROR_CHAR);
-                Debug.Log($"ERROR: No possible character at {queue.Peek()}");
+                //Debug.Log($"ERROR: No possible character at {queue.Peek()}");
                 return ERROR_CHAR;
             }
             
@@ -295,7 +295,7 @@ namespace Painting
                         List<char> possibleChars = PossibleChars(position);
                         // TODO: DEBUG
                         if (possibleChars.Count == 0) {
-                            Debug.Log($"No possible char at {position}");
+                            //Debug.Log($"No possible char at {position}");
                         }
 
                         if (entropies[position] != ENTROPY_COMPLETE) {
