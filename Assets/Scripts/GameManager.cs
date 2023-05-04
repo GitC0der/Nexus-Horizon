@@ -78,7 +78,6 @@ public class GameManager : MonoBehaviour {
             //CombineMeshes();
         }
         
-        GenerateFacade();
     }
     
     // Update is called once per frame
@@ -177,8 +176,8 @@ public class GameManager : MonoBehaviour {
     private void GenerateFacade() {
         int height = 50;
         int width = 15;
-        Position3 origin = new Position3(-height, 0, -width);
-        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade1, width, height, new Position2(2, 48), 'D');
+        Position3 origin = new Position3(-height, 30, -width + 70);
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade2, width, height, new Position2(2, 48), 'D');
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }
@@ -188,7 +187,15 @@ public class GameManager : MonoBehaviour {
             for (int y = 0; y < table.Length; y++) {
                 char c = table[y][x];
                 GameObject pref = null;
+                bool isBalcony = false;
                 switch (c) {
+                    case 'B':
+                        isBalcony = true;
+                        pref = buildingPrefab;
+                        break;
+                    case 'A':
+                        pref = walkwayPrefab;
+                        break;
                     case 'D':
                         pref = trainPrefab;
                         break;
@@ -202,13 +209,18 @@ public class GameManager : MonoBehaviour {
                         pref = buildingPrefab;
                         break;
                     case '@':
+                        // TODO: Remove this
+                        pref = buildingPrefab;
+                        isBalcony = false;
                         break;
                     default:
+                        isBalcony = false;
                         break;
                 }
 
                 if (pref != null) {
-                    GameObject obj = Instantiate(pref, new Position3(origin.x - x,origin.y - y, -10).AsVector3(), Quaternion.identity);
+                    Vector3 offset = isBalcony ? new Vector3(0, 0, -1): Vector3.zero;
+                    GameObject obj = Instantiate(pref, new Position3(origin.x - x,origin.y - y, -10).AsVector3() + offset, Quaternion.identity);
                     cubes.Add(obj);
                 }
             }
@@ -255,6 +267,8 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         OptimizeBlockBox();
+        
+        GenerateFacade();
 
         // Testing FindFacades
         /*

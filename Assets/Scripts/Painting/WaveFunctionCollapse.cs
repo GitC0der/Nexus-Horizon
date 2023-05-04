@@ -31,6 +31,29 @@ namespace Painting
         private Dictionary<Position2, List<Tile>> possibilities;
         private Dictionary<Position2, int> entropies;
 
+        public static readonly Tile Facade2 = new Tile(new string[] {
+            "---WWWW----WWWW-----",
+            "--------------------",
+            "---AAAAAA----WWWW---",
+            "---AAAAAA----BBBB---",
+            "--------------------",
+            "--WWWWW-----WWWWW---",
+            "-BBBBBBBBBBBBBBBBBB-",
+            "--------------------",
+            "--WWWWW-----WWWWW---",
+            "----------------AAA-",
+            "-----CCCCC------AAA-",
+            "-WW--C----------AAA-",
+            "-----C--WWWW--------",
+            "CCCCCC--WWWW--------",
+            "--------------------",
+            "---WWWW-----WWWWW---",
+            "---BBBB-----BBBBB---",
+            "--------------------",
+            "----DD--WWWW----WWW-",
+            "----DD--WWWW----WWW-"
+        });
+
         public static readonly Tile Facade1 = new Tile(new string[] {
             "--------------------",
             "------WWWW----WWWW--",
@@ -77,7 +100,10 @@ namespace Painting
             "------X---o---------"
         });
         
+        // TODO: Fix "sticking out of table" error when input length != input width
+        
         // TODO: Add backtracking
+        // TODO: Allow for predefined chars (i.e first place them, then generate)
         /// <summary>
         ///     Create a WaveFunctionCollapse generator. It receives a pattern as input and tries to reproduce it on an
         ///     output of given width and height. Sometimes the algorithms fails to find a solution at a specific point
@@ -171,13 +197,9 @@ namespace Painting
             }
             
             Position2 slot = queue.Dequeue();
-
             List<char> possibleChars = PossibleChars(slot);
-
             char pickedChar;
-            
-            // TODO: Debugging. Reverse this
-            
+
             if (possibleChars.Count != 0) {
                 pickedChar = possibleChars[Random.Range(0, possibleChars.Count)];
             } else {
@@ -191,11 +213,14 @@ namespace Painting
             return pickedChar;
         }
 
+        // TODO: Investigate possibility of optimization by not copying the tiles but simply returning the position of the char
         private List<char> PossibleChars(Position2 p) {
-            Dictionary<Position2, Tile> containingP = output.SubTilesContaining(p, DIMENSION);
+            HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, DIMENSION);
+            //Dictionary<Position2, Tile> containingP = output.SubTilesContaining(p, DIMENSION);
             List<List<char>> listOfPossibleChars = new List<List<char>>();
             
-            foreach (var (position, tile) in containingP) {
+            foreach (Position2 position in positions) {
+                //foreach (var (position, tile) in containingP) {
                 List<char> characters = new List<char>();
                 if (!output.IsInside(p + position)) {
                     throw new Exception("FATAL ERROR: everything is broken. THat is physically not possible");
@@ -237,9 +262,11 @@ namespace Painting
         
         private void SetCharAndUpdatePossibilities(Position2 p, char newChar) {
             output.SetChar(p, newChar);
-            Dictionary<Position2, Tile> tilesContainingP = output.SubTilesContaining(p, DIMENSION);
+            HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, DIMENSION);
+            //Dictionary<Position2, Tile> tilesContainingP = output.SubTilesContaining(p, DIMENSION);
             List<Tile> removedTiles = new List<Tile>();
-            foreach (var (position, tile) in tilesContainingP) {
+            foreach (Position2 position in positions) {
+                //foreach (var (position, tile) in tilesContainingP) {
                 List<Tile> possibleTiles = possibilities[p + position];
                 foreach (Tile possibleTile in possibleTiles) {
                     char c = possibleTile.CharAt(-position);
@@ -257,6 +284,7 @@ namespace Painting
                 removedTiles = new List<Tile>();
             }
         }
+        
 
         // TODO: Prefer width and height over dimension
         public void UpdateEntropies(Position2 p, int dimension) {
@@ -426,7 +454,22 @@ namespace Painting
             public bool IsInside(int x, int y) {
                 return (0 <= x && x < width && 0 <= y && y < height);
             }
-            
+
+            public HashSet<Position2> PositionsOfSubtilesContaining(Position2 pos, int dimension) {
+                HashSet<Position2> positions = new HashSet<Position2>();
+                for (int x = -dimension + 1; x <=  0; x++) {
+                    for (int y = -dimension + 1; y <= 0; y++) {
+                        int newX = pos.x + x;
+                        int newY = pos.y + y;
+                        if (IsInside(newX + dimension - 1, newY + dimension - 1) && IsInside(newX, newY)) {
+                            positions.Add(new Position2(x, y));
+                        }
+                    }
+                }
+
+                return positions;
+            }
+
             public Dictionary<Position2, Tile> SubTilesContaining(Position2 pos, int dimension) {
                 Dictionary<Position2, Tile> possibleTiles = new();
                 for (int x = -dimension + 1; x <=  0; x++) {
