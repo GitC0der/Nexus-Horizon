@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.Design;
+using System.Linq;
 using DefaultNamespace;
 using UnityEngine;
 
@@ -39,7 +40,8 @@ namespace Prepping
             for (int x = 0; x < sizeX; x++) {
                 for (int y = 0; y < sizeY; y++) {
                     for (int z = 0; z < sizeZ; z++) {
-                        blocks[x, y, z] = Block.NULL;
+                        blocks[x, y, z] = Block.Void;
+                        //blocks[x, y, z] = Block.NULL;
                     }
                 } 
             }
@@ -68,7 +70,8 @@ namespace Prepping
             }
 
             Block currentBlock = BlockAt(position);
-            if (!doForce && currentBlock != Block.NULL) {
+            if (!doForce && currentBlock != Block.Void) {
+            //if (!doForce && currentBlock != Block.NULL) {
                 return false;
             }
 
@@ -99,13 +102,18 @@ namespace Prepping
             return IsInside(position.x, 0, sizeX) && IsInside(position.y, 0, sizeY) && IsInside(position.z, 0, sizeZ);
         }
 
+        public bool IsStrictlyInside(Position3 position) {
+            return (position.x != 0 && position.x != sizeX) && (position.y != 0 && position.y != sizeY) &&
+                   (position.z != 0 && position.z != sizeZ) && IsInsideBox(position);
+        }
+
         private void Check(Dictionary<Position3, Block> acc, Position3 position, Position3 displ) {
             Position3 newPos = position + displ;
             if (IsInsideBox(newPos)) {
                 Block block = blocks[newPos.x, newPos.y, newPos.z];
-                if (!block.Equals(Block.NULL)) {
-                    acc.Add(newPos, block);
-                }
+                //if (!block.Equals(Block.NULL)) {
+                    acc.Add(displ, block);
+                //}
             }
         }
 
@@ -128,5 +136,6 @@ namespace Prepping
             
             return neighbors;
         }
+        
     }
 }

@@ -107,12 +107,15 @@ namespace Prepping.Generators
                 for (int y = minY; y < maxY; y++) {
                     for (int z = minZ; z < maxZ; z++) {
                         Position3 pos = new Position3(x, y, z);
-                        if (blockbox.IsInsideBox(pos) && blockbox.BlockAt(pos) == Block.NULL) {
+                        //if (blockbox.IsInsideBox(pos) && blockbox.BlockAt(pos) == Block.Void) {
+                        // TODO: Eventually remove this
+                        if (blockbox.IsStrictlyInside(pos) && blockbox.BlockAt(pos) == Block.Void) {
+                        //if (blockbox.IsInsideBox(pos) && blockbox.BlockAt(pos) == Block.NULL) {
                             recordedVolume += 1;
                             addedVolume += 1;
                             buildingBlocks.Add(pos);
+                            blockbox.TrySetBlock(Block.Building, pos);
                         }
-                        blockbox.TrySetBlock(Block.Building, pos);
                     }
                 }
             }
@@ -141,7 +144,8 @@ namespace Prepping.Generators
             return block;
             */
             Block block = blockbox.BlockAt(position);
-            return block == Block.NULL ? Block.Void: block;
+            return block;
+            //return block == Block.NULL ? Block.Void: block;
         }
 
         public override bool IsDone() => isDone;

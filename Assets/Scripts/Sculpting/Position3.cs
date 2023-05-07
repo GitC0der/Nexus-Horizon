@@ -26,7 +26,7 @@ namespace Prepping
 
         public static bool operator ==(Position3 lhs, Position3 rhs) => lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
         
-        public static bool operator !=(Position3 lhs, Position3 rhs) => lhs.x != rhs.x && lhs.y != rhs.y && lhs.z != rhs.z;
+        public static bool operator !=(Position3 lhs, Position3 rhs) => !(lhs == rhs);
 
         
         public static Vector3 AsVector3(Position3 from) => new(from.x, from.y, from.z);

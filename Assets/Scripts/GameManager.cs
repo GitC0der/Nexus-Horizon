@@ -7,6 +7,7 @@ using Data;
 using Painting;
 using Prepping;
 using Prepping.Generators;
+using Unity.VisualScripting;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
@@ -55,7 +56,10 @@ public class GameManager : MonoBehaviour {
         prefabs = new Dictionary<Block, GameObject>() {
             { Block.Building, buildingPrefab },
             { Block.Park, parkPrefab },
-            { Block.Void, voidPrefab }
+            { Block.Void, voidPrefab },
+            { Block.Skybridge , skybridgePrefab},
+            { Block.Train , trainPrefab},
+            { Block.Walkway, walkwayPrefab}
         };
         blockbox = new Blockbox(50, 80, 50);
         //blockbox = new Blockbox(30, 30, 30);
@@ -110,54 +114,83 @@ public class GameManager : MonoBehaviour {
         
     }
     
-    private List<List<Position3>> FindFacades() {
+    private void Regenerate() {
+        GameObject[] objects = FindObjectsOfType<GameObject>();
+        foreach (GameObject cube in cubes) {
+            Destroy(cube);
+        }
+
+        cubes = new HashSet<GameObject>();
         /*
-         * – Create and a list "allFacades" (a list of all facades)
-         * – Create a set "allFacadePositions" (a set of the positions of all blocks present
-         *   in at least one facade)
-         * – For every block in block box of type "null":
-         *      – If currentBlock is of type void, get its neighbours.
-         *          – If there is at least one neighbour of type "building":
-         *              – Create an empty list "facade"
-         *              – For every "building" block adjacent to currentBlock:
-         *                  – If that block is already in allFacadeBlocks, skip it.
-         *                  – Do a BFS and add the resulting blocks to facade.
-         *              – If facade is nonempty, add facade to allFacades
-         */
-        List<List<Position3>> allFacades = new List<List<Position3>>();
-        HashSet<Position3> allFacadePositions = new HashSet<Position3>();
-        for (int i = 0; i < blockbox.sizeX; i++) {
-            for (int j = 0; j < blockbox.sizeY; j++) {
-                for (int k = 0; k < blockbox.sizeZ; k++) {
-                    Position3 currentPos = new Position3(i, j, k);
-                    Block currentBlock = blockbox.BlockAt(currentPos);
+        foreach (GameObject obj in objects)
+        {
+            
+            if (obj.name != "Prefabs" && obj.name != "Directional Light" && obj.name != "Main Camera" && obj.name != "DebugManager" && obj.name != "GameManager" && blockbox.IsInsideBox(new Position3(obj.transform.position))) {
+                Destroy(obj);
+            }
+        }
+        */
+        
+        
+        blockbox.EmptyBox();
+        generator = new AnchoredCuboids(blockbox, true);
+        
+        while (!generator.IsDone()) {
+            GenerateBlock();
+        }
+        
+        GenerateFacade();
+
+        // Testing FindFacades
+
+        List<GameObject> prefabs = new List<GameObject>() {parkPrefab, buildingPrefab, trainPrefab, walkwayPrefab, skybridgePrefab};
+        var facades = FindFacades2();
+        foreach (var facade in facades) {
+            Block block = Blocks.RandomBlock(true);
+            foreach (var pos in facade) {
+                //blockbox.ForceSetBlock(Block.Park, pos);
+                blockbox.ForceSetBlock(block, pos);
+            }
+        }
+        
+        OptimizeBlockBox();
+
+        SpawnBlocks();
+        //CombineMeshes();
+    }
+
+    private List<HashSet<Position3>> FindFacades2() {
+        /*
+            - Create a list containing all facades, which are lists of positions
+            - Create a hashset of all blocks in facades
+            - For every block of type null:
+                - If block has at least one building neighbor
+                    - For each of its neighbor building that is NOT already in a facade
+                        - Create an empty list for the current facade
+                        - Do a DFS to get all the adjacent buildings
+                        - Add them all into that list
+                        - Add that list to the list of facades
+        */
+
+        List<HashSet<Position3>> facades = new();
+        HashSet<Position3> blocksInFacades = new();
+        
+        // Iterating over all blocks
+        for (int x = 1; x < blockbox.sizeX - 1; x++) {
+            for (int y = 1; y < blockbox.sizeY - 1; y++) {
+                for (int z = 1; z < blockbox.sizeX - 1; z++) {
+                    Position3 currentPos = new(x, y, z);
+                    Dictionary<Position3, Block> neighbors = blockbox.GetNeighbors(currentPos);
                     
-                    // Skip all blocks but the null ones
-                    if (currentBlock == Block.NULL) {
-                        Dictionary<Position3, Block> neighbours = blockbox.GetNeighbors(currentPos);
-
-                        // Only keep blocks of type "building"
-                        foreach (var (neighbourPos, neighbourBlock) in neighbours) {
-                            if (neighbourBlock != Block.Building) {
-                                neighbours.Remove(neighbourPos);
-                            }
-                        }
-                        
-                        // Only continue if at there is at least one neighbour remaining
-                        if (neighbours.Count > 0) {
-                            foreach (var (neighbourPos, _) in neighbours) {
-                                if (!allFacadePositions.Contains(neighbourPos)) {
-                                    // Call the BFS to find all the positions of the blocks in the facade
-                                    List<Position3> facade = BFS(neighbourPos);
-                                    
-                                    // Add the positions of the new facade blocks to the set
-                                    foreach (var pos in facade) {
-                                        allFacadePositions.Add(pos);
-                                    }
-                                     
-                                    // Add the facade to the list of all facades
-                                    allFacades.Add(facade);
-                                }
+                    // Checking all blocks that are null and have at least one neighbor building
+                    if (blockbox.BlockAt(currentPos) == Block.Void && neighbors.ContainsValue(Block.Building)) {
+                        foreach (var (relativeNeighborPos, block) in neighbors) {
+                            if (block == Block.Building && !blocksInFacades.Contains(currentPos + relativeNeighborPos)) {
+                                
+                                // Retrieving adjacent facade blocks with BFS
+                                HashSet<Position3> currentFacade = BfsFacade(currentPos, relativeNeighborPos);
+                                facades.Add(currentFacade);
+                                blocksInFacades.AddRange(currentFacade);
                             }
                         }
                     }
@@ -165,41 +198,43 @@ public class GameManager : MonoBehaviour {
             }
         }
 
-        return allFacades;
+        return facades;
     }
 
-    // Todo: Implement BFS
-    private List<Position3> BFS(Position3 start) {
+    private HashSet<Position3> BfsFacade(Position3 startingPos, Position3 normalDirection) {
         Queue<Position3> queue = new Queue<Position3>();
-        HashSet<Position3> visited = new HashSet<Position3>();
-        List<Position3> facade = new List<Position3>();
-    
-        // Add the starting position to the queue and mark it as visited
-        queue.Enqueue(start);
-        visited.Add(start);
-    
-        while (queue.Count > 0) {
-            Position3 currentPos = queue.Dequeue();
-            facade.Add(currentPos);
+        HashSet<Position3> currentFacade = new();
+        queue.Enqueue(startingPos + normalDirection);
         
-            // Get the neighbors of the current position
-            Dictionary<Position3, Block> neighbours = blockbox.GetNeighbors(currentPos);
-        
-            // Check if the neighbor is a building block and has not been visited before
-            foreach (var (neighbourPos, neighbourBlock) in neighbours) {
-                if (neighbourBlock == Block.Building && !visited.Contains(neighbourPos)) {
-                    // Only add the neighbor if it is in the same plane as the start position
-                    if (neighbourPos.x == start.x) {
-                        queue.Enqueue(neighbourPos);
-                        visited.Add(neighbourPos);
+        while (queue.Count != 0) {
+            Position3 bfsPosition = queue.Dequeue();
+            currentFacade.Add(bfsPosition);
+
+            var bfsNeighbors = blockbox.GetNeighbors(bfsPosition);
+                                    
+            // If condition to avoid errors with the next two "BlockAt" calls
+            if (blockbox.IsInsideBox(bfsPosition + normalDirection) && blockbox.IsInsideBox(bfsPosition - normalDirection)) {
+                Block block1 = blockbox.BlockAt(bfsPosition + normalDirection);
+                Block block2 = blockbox.BlockAt(bfsPosition - normalDirection);
+                                        
+                // Check if examined block is not hidden behind other blocks
+                if (!(block1 == Block.Building && block2 == Block.Building)) {
+                    foreach (var (relativeBfsNeighborPos, b) in bfsNeighbors) {
+                        Position3 examined = relativeBfsNeighborPos + bfsPosition;
+                        if (relativeBfsNeighborPos != normalDirection 
+                            && relativeBfsNeighborPos != -normalDirection 
+                            && b == Block.Building 
+                            && !currentFacade.Contains(examined) && !queue.Contains(examined)) {
+                            queue.Enqueue(examined);
+                        }
                     }
                 }
             }
-        }
-    
-        return facade;
-    }
 
+        }
+
+        return currentFacade;
+    }
 
 
     private void GenerateFacade() {
@@ -262,7 +297,8 @@ public class GameManager : MonoBehaviour {
                 for (int z = 0; z < blockbox.sizeZ; z++) {
                     Position3 blockPosition = new Position3(x, y, z);
                     Block block = blockbox.BlockAt(blockPosition);
-                    if (block != Block.Void && block != Block.NULL) {
+                    if (block != Block.Void) {
+                    //if (block != Block.Void && block != Block.NULL) {
                         GameObject obj = Instantiate(PrefabFrom(block), blockPosition.AsVector3(), Quaternion.identity);
                         cubes.Add(obj);
                     }
@@ -270,50 +306,7 @@ public class GameManager : MonoBehaviour {
             }
         }
     }
-    
-    private void Regenerate() {
-        GameObject[] objects = FindObjectsOfType<GameObject>();
-        foreach (GameObject cube in cubes) {
-            Destroy(cube);
-        }
 
-        cubes = new HashSet<GameObject>();
-        /*
-        foreach (GameObject obj in objects)
-        {
-            
-            if (obj.name != "Prefabs" && obj.name != "Directional Light" && obj.name != "Main Camera" && obj.name != "DebugManager" && obj.name != "GameManager" && blockbox.IsInsideBox(new Position3(obj.transform.position))) {
-                Destroy(obj);
-            }
-        }
-        */
-        
-        
-        blockbox.EmptyBox();
-        generator = new AnchoredCuboids(blockbox, true);
-        
-        while (!generator.IsDone()) {
-            GenerateBlock();
-        }
-        OptimizeBlockBox();
-        
-        GenerateFacade();
-
-        // Testing FindFacades
-        
-        var facades = FindFacades();
-        var subsetOfFacades = facades.Take(10);
-        foreach (var facade in subsetOfFacades) {
-            foreach (var pos in facade) {
-                blockbox.ForceSetBlock(Block.Park, pos);
-            }
-        }
-        
-
-        SpawnBlocks();
-        //CombineMeshes();
-    }
-    
     private void GenerateBlock() {
         Position3 blockPosition = generator.GetNextPosition();
         Block block = generator.GenerateNextBlock();

@@ -53,16 +53,16 @@ namespace Prepping.Generators
 
         protected override Block GenerateBlock(Position3 position, bool doForce) {
             Block prevBlock = blockbox.BlockAt(position);
-            if (prevBlock != Block.NULL && !doForce) {
-                return prevBlock;
-            }
+            //if (prevBlock != Block.NULL && !doForce) {
+                //return prevBlock;
+            //}
             
             Dictionary<Position3, Block> neighbors = blockbox.GetNeighbors(position);
             Block block = BlockSelection.PickBlock(neighbors, position);
             blockbox.TrySetBlock(block, position);
-            if (block == Block.NULL) {
-                throw new Exception("Fatal ERROR: a NULL block was generated");
-            }
+            //if (block == Block.NULL) {
+                //throw new Exception("Fatal ERROR: a NULL block was generated");
+            //}
 
             return block;
         }
