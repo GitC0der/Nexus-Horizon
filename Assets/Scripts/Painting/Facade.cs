@@ -31,6 +31,8 @@ namespace Painting
 
         public HashSet<Position3> GetBlocks() => _blocks;
 
+        public Orientation GetOrientation() => _orientation;
+
     }
     
     public enum Orientation

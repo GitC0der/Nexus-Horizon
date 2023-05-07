@@ -32,6 +32,7 @@ public class GameManager : MonoBehaviour {
     private Blockbox blockbox;
     private IGenerator generator;
     private bool instantGeneration = true;
+    private HashSet<Facade> _facades = new();
 
     private HashSet<GameObject> cubes = new HashSet<GameObject>();
     
@@ -143,14 +144,45 @@ public class GameManager : MonoBehaviour {
 
         // Testing FindFacades
 
+        
         List<GameObject> prefabs = new List<GameObject>() {parkPrefab, buildingPrefab, trainPrefab, walkwayPrefab, skybridgePrefab};
-        var facades = FindFacades2();
+        var facades = FindFacades();
         foreach (var facade in facades) {
-            Block block = Blocks.RandomBlock(true);
-            foreach (var pos in facade) {
-                //blockbox.ForceSetBlock(Block.Park, pos);
+            
+            
+            Block block;
+            if (facade.GetOrientation() == Orientation.Roof) {
+                block = Block.Train;
+            } else if (facade.GetOrientation() == Orientation.Floor) {
+                block = Block.Park;
+            } else if (facade.GetOrientation() == Orientation.WallE) {
+                block = Block.Walkway;
+            } else if (facade.GetOrientation() == Orientation.WallW) {
+                block = Block.Walkway;
+            } else if (facade.GetOrientation() == Orientation.WallS) {
+                block = Block.Skybridge;
+            } else if (facade.GetOrientation() == Orientation.WallN) {
+                block = Block.Skybridge;
+            } else {
+                throw new Exception("WHAT????");
+            }
+
+            
+            foreach (Position3 pos in facade.GetBlocks()) {
                 blockbox.ForceSetBlock(block, pos);
             }
+            
+            /*
+            if (facade.GetOrientation() == Orientation.Roof) {
+                block = new List<Block>() { Block.Park, Block.Skybridge, Block.Train, Block.Walkway }[Random.Range(0, 4)];
+                block = Block.Train;
+                foreach (Position3 pos in facade.GetBlocks()) {
+                    //blockbox.ForceSetBlock(Block.Park, pos);
+                    blockbox.ForceSetBlock(block, pos);
+                }
+            }
+            */
+            
         }
         
         OptimizeBlockBox();
@@ -159,7 +191,7 @@ public class GameManager : MonoBehaviour {
         //CombineMeshes();
     }
 
-    private List<HashSet<Position3>> FindFacades2() {
+    private HashSet<Facade> FindFacades() {
         /*
             - Create a list containing all facades, which are lists of positions
             - Create a hashset of all blocks in facades
@@ -172,13 +204,13 @@ public class GameManager : MonoBehaviour {
                         - Add that list to the list of facades
         */
 
-        List<HashSet<Position3>> facades = new();
+        HashSet<Facade> facades = new();
         HashSet<Position3> blocksInFacades = new();
         
         // Iterating over all blocks
-        for (int x = 1; x < blockbox.sizeX - 1; x++) {
-            for (int y = 1; y < blockbox.sizeY - 1; y++) {
-                for (int z = 1; z < blockbox.sizeX - 1; z++) {
+        for (int x = 0; x < blockbox.sizeX; x++) {
+            for (int y = 0; y < blockbox.sizeY; y++) {
+                for (int z = 0; z < blockbox.sizeX; z++) {
                     Position3 currentPos = new(x, y, z);
                     Dictionary<Position3, Block> neighbors = blockbox.GetNeighbors(currentPos);
                     
@@ -189,7 +221,7 @@ public class GameManager : MonoBehaviour {
                                 
                                 // Retrieving adjacent facade blocks with BFS
                                 HashSet<Position3> currentFacade = BfsFacade(currentPos, relativeNeighborPos);
-                                facades.Add(currentFacade);
+                                facades.Add(new Facade(currentFacade, -relativeNeighborPos));
                                 blocksInFacades.AddRange(currentFacade);
                             }
                         }
@@ -211,7 +243,31 @@ public class GameManager : MonoBehaviour {
             currentFacade.Add(bfsPosition);
 
             var bfsNeighbors = blockbox.GetNeighbors(bfsPosition);
-                                    
+
+            // TODO: Fix roof not found because of adjacency with floor
+            // Solution: store which of the two block is building beforehand, and add in queue only if the same block is building
+            // instead of checking if not both of them are building
+            
+            foreach (var (relativeBfsNeighborPos, b) in bfsNeighbors) {
+                Position3 examined = relativeBfsNeighborPos + bfsPosition;
+                
+                // Just to avoid errors with the BlockAt below
+                if (blockbox.IsInsideBox(examined + normalDirection) &&
+                    blockbox.IsInsideBox(examined - normalDirection)) {
+                    
+                    Block block1 = blockbox.BlockAt(examined + normalDirection);
+                    Block block2 = blockbox.BlockAt(examined - normalDirection);
+                    if (relativeBfsNeighborPos != normalDirection
+                        && relativeBfsNeighborPos != -normalDirection
+                        && b == Block.Building
+                        && !currentFacade.Contains(examined) && !queue.Contains(examined)
+                        && !(block1 == Block.Building && block2 == Block.Building)) {
+                        queue.Enqueue(examined);
+                    }
+                }
+            }
+            
+            /*
             // If condition to avoid errors with the next two "BlockAt" calls
             if (blockbox.IsInsideBox(bfsPosition + normalDirection) && blockbox.IsInsideBox(bfsPosition - normalDirection)) {
                 Block block1 = blockbox.BlockAt(bfsPosition + normalDirection);
@@ -230,6 +286,7 @@ public class GameManager : MonoBehaviour {
                     }
                 }
             }
+            */
 
         }
 
