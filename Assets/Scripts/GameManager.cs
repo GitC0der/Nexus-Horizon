@@ -116,7 +116,6 @@ public class GameManager : MonoBehaviour {
     }
     
     private void Regenerate() {
-        GameObject[] objects = FindObjectsOfType<GameObject>();
         foreach (GameObject cube in cubes) {
             Destroy(cube);
         }
@@ -136,15 +135,24 @@ public class GameManager : MonoBehaviour {
         blockbox.EmptyBox();
         generator = new AnchoredCuboids(blockbox, true);
         
+        
         while (!generator.IsDone()) {
             GenerateBlock();
         }
         
-        GenerateFacade();
+        GenerateOutsideTestFacade();
 
-        // Testing FindFacades
-
+        var facades = FindAllFacadesTest();
         
+        //GenerateSingleRandomFacadeRoof(facades);
+        
+        OptimizeBlockBox();
+
+        SpawnBlocks();
+    }
+
+
+    private HashSet<Facade> FindAllFacadesTest() {
         List<GameObject> prefabs = new List<GameObject>() {parkPrefab, buildingPrefab, trainPrefab, walkwayPrefab, skybridgePrefab};
         var facades = FindFacades();
         foreach (var facade in facades) {
@@ -167,12 +175,13 @@ public class GameManager : MonoBehaviour {
                 throw new Exception("WHAT????");
             }
 
-            
+            /*
             foreach (Position3 pos in facade.GetBlocks()) {
                 blockbox.ForceSetBlock(block, pos);
             }
+            */
             
-            /*
+            
             if (facade.GetOrientation() == Orientation.Roof) {
                 block = new List<Block>() { Block.Park, Block.Skybridge, Block.Train, Block.Walkway }[Random.Range(0, 4)];
                 block = Block.Train;
@@ -181,14 +190,78 @@ public class GameManager : MonoBehaviour {
                     blockbox.ForceSetBlock(block, pos);
                 }
             }
-            */
+            
             
         }
-        
-        OptimizeBlockBox();
 
-        SpawnBlocks();
-        //CombineMeshes();
+        return facades;
+
+    }
+
+    private void GenerateSingleRandomFacadeRoof(HashSet<Facade> facades) {
+        var p = 0;
+        var roofs = facades.Where(f => f.GetOrientation() == Orientation.Roof).ToList();
+        var highEnough = roofs.Where(f => f.GetFixedCoordinate() > 10).ToList();
+        var largeEnough = highEnough.Where(f => f.GetWidth() > 8 && f.GetHeight() > 6).ToList();
+        
+        for (int i = 0; i < largeEnough.Count; i++) {
+            DrawOneFacade(largeEnough[i]);
+
+        }
+        
+    }
+
+    private void DrawOneFacade(Facade facade) {
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Roof1, facade.GetWidth(),
+            facade.GetHeight(), new Position2(0,0), 'B');
+        while (!wfc.IsDone()) {
+            wfc.GenerateNextSlot();
+        }
+
+        for (int x = 0; x < facade.GetHeight(); x++) {
+            for (int z = 0; z < facade.GetWidth(); z++) {
+                Position2 pos = new Position2();
+                Block block;
+                var output = wfc.GetOutput();
+                if (output.Length < facade.GetHeight() || output[0].Length < facade.GetWidth()) {
+                    throw new Exception("What da heck happened?????");
+                }
+                if (x < output.Length && z < output[0].Length) {
+                    switch (wfc.GetOutput()[x][z]) {
+                        case 'B':
+                            block = Block.Train;
+                            break;
+                        case 'S':
+                            block = Block.Park;
+                            break;
+                        case 'C':
+                            block = Block.Skybridge;
+                            break;
+                        case '-':
+                            block = Block.Building;
+                            break;
+                        default:
+                            block = Block.Void;
+                            break;
+                    }
+                    
+                }
+                else {
+                    block = Block.Walkway;
+                }
+                
+                if (block != Block.Void) {
+                    blockbox.ForceSetBlock(block, facade.GetMinCorner3() + new Position3(z,0,x));
+                    //blockbox.ForceSetBlock(Block.Skybridge, facade.GetMinCorner3() + new Position3(x,0,z));
+                }
+                    
+                /*
+                foreach (Position3 p in facade.GetBlocks()) {
+                    blockbox.ForceSetBlock(Block.Skybridge, p);
+                }
+                */
+            }
+        }
     }
 
     private HashSet<Facade> FindFacades() {
@@ -248,6 +321,7 @@ public class GameManager : MonoBehaviour {
             // Solution: store which of the two block is building beforehand, and add in queue only if the same block is building
             // instead of checking if not both of them are building
             
+            // Note: need to iterate over all neighbors and not just adjacent neighbor, to make sure BFS stops when hitting other building
             foreach (var (relativeBfsNeighborPos, b) in bfsNeighbors) {
                 Position3 examined = relativeBfsNeighborPos + bfsPosition;
                 
@@ -294,7 +368,7 @@ public class GameManager : MonoBehaviour {
     }
 
 
-    private void GenerateFacade() {
+    private void GenerateOutsideTestFacade() {
         int height = 50;
         int width = 15;
         Position3 origin = new Position3(-height, 30, -width + 70);
