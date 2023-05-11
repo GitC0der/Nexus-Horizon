@@ -1,13 +1,11 @@
 using System;
-using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Data;
 using Painting;
 using Prepping;
 using Prepping.Generators;
 using Unity.VisualScripting;
+using UnityEngine;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
@@ -131,23 +129,21 @@ public class GameManager : MonoBehaviour {
         }
         */
         
-        
         blockbox.EmptyBox();
         generator = new AnchoredCuboids(blockbox, true);
-        
-        
+
         while (!generator.IsDone()) {
             GenerateBlock();
         }
         
         GenerateOutsideTestFacade();
-
-        var facades = FindAllFacadesTest();
         
-        GenerateSingleRandomFacadeRoof(facades);
+        // var facades = FindAllFacadesTest();
+        //
+        // GenerateSingleRandomFacadeRoof(facades);
         
         OptimizeBlockBox();
-
+        
         SpawnBlocks();
     }
 
@@ -417,7 +413,6 @@ public class GameManager : MonoBehaviour {
                     Position3 blockPosition = new Position3(x, y, z);
                     Block block = blockbox.BlockAt(blockPosition);
                     if (block != Block.Void) {
-                    //if (block != Block.Void && block != Block.NULL) {
                         GameObject obj = Instantiate(PrefabFrom(block), blockPosition.AsVector3(), Quaternion.identity);
                         cubes.Add(obj);
                     }
@@ -453,8 +448,8 @@ public class GameManager : MonoBehaviour {
             for (int y = 0; y < blockbox.sizeY; y++) {
                 for (int z = 0; z < blockbox.sizeZ; z++) {
                     var neighbors = blockbox.GetNeighbors(new Position3(x, y, z));
-                    if (neighbors.Count == 6 && neighbors.ToList().FindAll(pair => pair.Value == Block.Building).Count == 6) {
-                        willBeRemoved.Add(new Position3(x,y,z));
+                    if (neighbors.Count() == 6 && neighbors.Count(pair => pair.Value == Block.Building) == 6) {
+                        willBeRemoved.Add(new Position3(x, y, z));
                     }
                 }
             }

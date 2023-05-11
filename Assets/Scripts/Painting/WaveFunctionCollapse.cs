@@ -2,12 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using DefaultNamespace;
-using Prepping;
-//using NUnit.Framework;
-using UnityEngine;
 using Random = UnityEngine.Random;
-
+//using NUnit.Framework;
 
 
 namespace Painting
@@ -25,7 +21,6 @@ namespace Painting
         private bool isDone;
         private PriorityQueue<Position2> queue;
         private List<char> inputChars;
-
 
         private Tile output;
         private Dictionary<Position2, HashSet<Tile>> possibilities;
@@ -240,7 +235,7 @@ namespace Painting
             SetCharAndUpdateAll(slot, pickedChar);
             
             if (queue.Count == 0) isDone = true;
-
+            
             return pickedChar;
         }
 
@@ -292,30 +287,56 @@ namespace Painting
         private void SetCharAndUpdatePossibilities(Position2 p, char newChar) {
             output.SetChar(p, newChar);
             HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, DIMENSION);
-            List<Tile> removedTiles = new List<Tile>();
-            
-            // Iterating over all tiles which will be affected by the placement of newChar at p
-            foreach (Position2 position in positions) {
+
+            // Using a HashSet instead of a List for removedTiles
+            HashSet<Tile> removedTiles = new HashSet<Tile>();
+
+            // Using a for loop instead of a foreach loop for positions
+            for (int i = 0; i < positions.Count; i++) {
+                Position2 position = positions.ElementAt(i);
                 HashSet<Tile> possibleTiles = possibilities[p + position];
-                
-                // Removing the tiles that are no longer possible
-                foreach (Tile possibleTile in possibleTiles) {
-                    char c = possibleTile.CharAt(-position);
-                    if (!(c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR) && !(newChar == ERROR_CHAR || newChar == EMPTY_CHAR)) {
-                        removedTiles.Add(possibleTile);
-                    }
 
-                   
-                }
-                
-                possibleTiles.RemoveWhere(c => removedTiles.Contains(c));
+                // Using IntersectWith to check if an item is in the HashSet
+                possibleTiles.IntersectWith(possibleTiles.Where(t => {
+                    char c = t.CharAt(-position);
+                    return (c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR || newChar == ERROR_CHAR || newChar == EMPTY_CHAR);
+                }));
+
+                // Adding removed tiles to the HashSet
+                removedTiles.UnionWith(possibleTiles.Except(removedTiles));
+
                 possibilities[p + position] = possibleTiles;
-
-                // TODO: Improve this
-                removedTiles = new List<Tile>();
             }
         }
+
         
+        // private void SetCharAndUpdatePossibilities(Position2 p, char newChar) {
+        //     output.SetChar(p, newChar);
+        //     HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, DIMENSION);
+        //     List<Tile> removedTiles = new List<Tile>();
+        //     
+        //     // Iterating over all tiles which will be affected by the placement of newChar at p
+        //     foreach (Position2 position in positions) {
+        //         HashSet<Tile> possibleTiles = possibilities[p + position];
+        //         
+        //         // Removing the tiles that are no longer possible
+        //         foreach (Tile possibleTile in possibleTiles) {
+        //             char c = possibleTile.CharAt(-position);
+        //             if (!(c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR) && !(newChar == ERROR_CHAR || newChar == EMPTY_CHAR)) {
+        //                 removedTiles.Add(possibleTile);
+        //             }
+        //
+        //            
+        //         }
+        //         
+        //         possibleTiles.RemoveWhere(c => removedTiles.Contains(c));
+        //         possibilities[p + position] = possibleTiles;
+        //
+        //         // TODO: Improve this
+        //         removedTiles = new List<Tile>();
+        //     }
+        // }
+        //
 
         // TODO: Prefer width and height over dimension
         public void UpdateEntropies(Position2 p, int dimension) {
