@@ -28,7 +28,7 @@ namespace Painting
 
 
         private Tile output;
-        private Dictionary<Position2, List<Tile>> possibilities;
+        private Dictionary<Position2, HashSet<Tile>> possibilities;
         private Dictionary<Position2, int> entropies;
 
         public static readonly Tile Facade2 = new Tile(new string[] {
@@ -77,6 +77,29 @@ namespace Painting
             "----DD---WWWW--WWWW-",
         });
 
+        public static readonly Tile Roof1 = new Tile(new string[] {
+            "BBBBBBBBBBBBBBBBBBBB",
+            "B------------------B",
+            "B---SSSS-------C---B",
+            "B---S----------C---B",
+            "B---S--------------B",
+            "B------------------B",
+            "B------------------B",
+            "B-----------SS-----B",
+            "B------------S-----B",
+            "B---CC-------S-----B",
+            "B------------S-----B",
+            "B------------S-----B",
+            "B---CC------SS-----B",
+            "B------------------B",
+            "B-------C----------B",
+            "B-------C----------B",
+            "B-----S-----S------B",
+            "B-----SSSSSSS------B",
+            "B------------------B",
+            "BBBBBBBBBBBBBBBBBBBB",
+        });
+
         public static readonly Tile HugeExample = new Tile(new string[] {
             "--X------X----------",
             "--X------XXXXXXX----",
@@ -123,19 +146,23 @@ namespace Painting
                     tiles.Add(inputMap.GetSubTile(new Position2(col, row), new Position2(col + DIMENSION - 1, row + DIMENSION - 1), false));
                 }
             }
+
+            if (initPos.x >= outputWidth || initPos.y >= outputHeight) {
+                throw new ArgumentException($"Initpos {initPos} is outside the output (of width = {outputWidth} and height = {outputHeight})");
+            }
             
             inputChars = inputMap.GetChars();
 
             output = new Tile(outputHeight, outputWidth);
 
-            possibilities = new Dictionary<Position2, List<Tile>>();
+            possibilities = new Dictionary<Position2, HashSet<Tile>>();
             queue = new PriorityQueue<Position2>();
             entropies = new Dictionary<Position2, int>();
             for (int x = 0; x < outputWidth; x++) {
                 for (int y = 0; y < outputHeight; y++) {
                     Position2 position = new Position2(x, y);
                     if ( x < outputWidth - DIMENSION + 1 && y < outputHeight - DIMENSION + 1) {
-                        possibilities.Add(position, new List<Tile>(tiles));
+                        possibilities.Add(position, new HashSet<Tile>(tiles));
                     }
                     queue.Enqueue(position, inputChars.Count);
                     entropies.Add(position, inputChars.Count);
@@ -190,6 +217,7 @@ namespace Painting
             */
             if (isDone) throw new ArgumentException("Attempting to generate tile while the generator is done");
 
+            // If the next slot has no possible character
             if (entropies[queue.Peek()] == 0) {
                 SetCharAndUpdateAll(queue.Peek(), ERROR_CHAR);
                 //Debug.Log($"ERROR: No possible character at {queue.Peek()}");
@@ -197,9 +225,12 @@ namespace Painting
             }
             
             Position2 slot = queue.Dequeue();
+            
+            // TODO: Store the possible characters instead of the entropies
             List<char> possibleChars = PossibleChars(slot);
             char pickedChar;
 
+            
             if (possibleChars.Count != 0) {
                 pickedChar = possibleChars[Random.Range(0, possibleChars.Count)];
             } else {
@@ -216,17 +247,15 @@ namespace Painting
         // TODO: Investigate possibility of optimization by not copying the tiles but simply returning the position of the char
         private List<char> PossibleChars(Position2 p) {
             HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, DIMENSION);
-            //Dictionary<Position2, Tile> containingP = output.SubTilesContaining(p, DIMENSION);
-            List<List<char>> listOfPossibleChars = new List<List<char>>();
+            HashSet<HashSet<char>> listOfPossibleChars = new HashSet<HashSet<char>>();
             
             foreach (Position2 position in positions) {
-                //foreach (var (position, tile) in containingP) {
-                List<char> characters = new List<char>();
+                HashSet<char> characters = new HashSet<char>();
                 if (!output.IsInside(p + position)) {
                     throw new Exception("FATAL ERROR: everything is broken. THat is physically not possible");
                 }
 
-                List<Tile> possibleTiles;
+                HashSet<Tile> possibleTiles;
                 try {
                     possibleTiles = possibilities[p + position];
                 }
@@ -243,7 +272,7 @@ namespace Painting
             List<char> possibleChars = new();
             foreach (char inputChar in inputChars) {
                 bool isInAll = true;
-                foreach (List<char> charLists in listOfPossibleChars) {
+                foreach (HashSet<char> charLists in listOfPossibleChars) {
                     if (!charLists.Contains(inputChar)) {
                         isInAll = false;
                         break;
@@ -263,11 +292,13 @@ namespace Painting
         private void SetCharAndUpdatePossibilities(Position2 p, char newChar) {
             output.SetChar(p, newChar);
             HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, DIMENSION);
-            //Dictionary<Position2, Tile> tilesContainingP = output.SubTilesContaining(p, DIMENSION);
             List<Tile> removedTiles = new List<Tile>();
+            
+            // Iterating over all tiles which will be affected by the placement of newChar at p
             foreach (Position2 position in positions) {
-                //foreach (var (position, tile) in tilesContainingP) {
-                List<Tile> possibleTiles = possibilities[p + position];
+                HashSet<Tile> possibleTiles = possibilities[p + position];
+                
+                // Removing the tiles that are no longer possible
                 foreach (Tile possibleTile in possibleTiles) {
                     char c = possibleTile.CharAt(-position);
                     if (!(c == newChar || c == EMPTY_CHAR || c == ERROR_CHAR) && !(newChar == ERROR_CHAR || newChar == EMPTY_CHAR)) {
@@ -277,7 +308,7 @@ namespace Painting
                    
                 }
                 
-                possibleTiles.RemoveAll(c => removedTiles.Contains(c));
+                possibleTiles.RemoveWhere(c => removedTiles.Contains(c));
                 possibilities[p + position] = possibleTiles;
 
                 // TODO: Improve this
