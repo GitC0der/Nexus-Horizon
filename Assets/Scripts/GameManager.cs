@@ -1,13 +1,11 @@
 using System;
-using UnityEngine;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using Data;
 using Painting;
 using Prepping;
 using Prepping.Generators;
 using Unity.VisualScripting;
+using UnityEngine;
 using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
@@ -131,23 +129,21 @@ public class GameManager : MonoBehaviour {
         }
         */
         
-        
         blockbox.EmptyBox();
         generator = new AnchoredCuboids(blockbox, true);
-        
-        
+
         while (!generator.IsDone()) {
             GenerateBlock();
         }
         
         GenerateOutsideTestFacade();
-
-        var facades = FindAllFacadesTest();
         
-        //GenerateSingleRandomFacadeRoof(facades);
+        // var facades = FindAllFacadesTest();
+        //
+        // GenerateSingleRandomFacadeRoof(facades);
         
         OptimizeBlockBox();
-
+        
         SpawnBlocks();
     }
 
@@ -202,13 +198,9 @@ public class GameManager : MonoBehaviour {
         var p = 0;
         var roofs = facades.Where(f => f.GetOrientation() == Orientation.Roof).ToList();
         var highEnough = roofs.Where(f => f.GetFixedCoordinate() > 10).ToList();
-        var largeEnough = highEnough.Where(f => f.GetWidth() > 8 && f.GetHeight() > 6).ToList();
+        var largeEnough = highEnough.Where(f => f.GetWidth() > 6 || f.GetHeight() > 6).ToList();
         
-        for (int i = 0; i < largeEnough.Count; i++) {
-            DrawOneFacade(largeEnough[i]);
-
-        }
-        
+        DrawOneFacade(largeEnough[0]);
     }
 
     private void DrawOneFacade(Facade facade) {
@@ -218,14 +210,11 @@ public class GameManager : MonoBehaviour {
             wfc.GenerateNextSlot();
         }
 
-        for (int x = 0; x < facade.GetHeight(); x++) {
-            for (int z = 0; z < facade.GetWidth(); z++) {
+        for (int x = 0; x < facade.GetWidth(); x++) {
+            for (int z = 0; z < facade.GetHeight(); z++) {
                 Position2 pos = new Position2();
                 Block block;
                 var output = wfc.GetOutput();
-                if (output.Length < facade.GetHeight() || output[0].Length < facade.GetWidth()) {
-                    throw new Exception("What da heck happened?????");
-                }
                 if (x < output.Length && z < output[0].Length) {
                     switch (wfc.GetOutput()[x][z]) {
                         case 'B':
@@ -245,21 +234,17 @@ public class GameManager : MonoBehaviour {
                             break;
                     }
                     
-                }
-                else {
-                    block = Block.Walkway;
+                    
+                    if (block != Block.Void) {
+                        blockbox.ForceSetBlock(block, facade.GetMinCorner3() + new Position3(x,0,z));
+                    }
+                    
+
+                    foreach (Position3 p in facade.GetBlocks()) {
+                        blockbox.ForceSetBlock(Block.Skybridge, p);
+                    }
                 }
                 
-                if (block != Block.Void) {
-                    blockbox.ForceSetBlock(block, facade.GetMinCorner3() + new Position3(z,0,x));
-                    //blockbox.ForceSetBlock(Block.Skybridge, facade.GetMinCorner3() + new Position3(x,0,z));
-                }
-                    
-                /*
-                foreach (Position3 p in facade.GetBlocks()) {
-                    blockbox.ForceSetBlock(Block.Skybridge, p);
-                }
-                */
             }
         }
     }
@@ -321,7 +306,6 @@ public class GameManager : MonoBehaviour {
             // Solution: store which of the two block is building beforehand, and add in queue only if the same block is building
             // instead of checking if not both of them are building
             
-            // Note: need to iterate over all neighbors and not just adjacent neighbor, to make sure BFS stops when hitting other building
             foreach (var (relativeBfsNeighborPos, b) in bfsNeighbors) {
                 Position3 examined = relativeBfsNeighborPos + bfsPosition;
                 
@@ -429,7 +413,6 @@ public class GameManager : MonoBehaviour {
                     Position3 blockPosition = new Position3(x, y, z);
                     Block block = blockbox.BlockAt(blockPosition);
                     if (block != Block.Void) {
-                    //if (block != Block.Void && block != Block.NULL) {
                         GameObject obj = Instantiate(PrefabFrom(block), blockPosition.AsVector3(), Quaternion.identity);
                         cubes.Add(obj);
                     }
@@ -465,8 +448,8 @@ public class GameManager : MonoBehaviour {
             for (int y = 0; y < blockbox.sizeY; y++) {
                 for (int z = 0; z < blockbox.sizeZ; z++) {
                     var neighbors = blockbox.GetNeighbors(new Position3(x, y, z));
-                    if (neighbors.Count == 6 && neighbors.ToList().FindAll(pair => pair.Value == Block.Building).Count == 6) {
-                        willBeRemoved.Add(new Position3(x,y,z));
+                    if (neighbors.Count() == 6 && neighbors.Count(pair => pair.Value == Block.Building) == 6) {
+                        willBeRemoved.Add(new Position3(x, y, z));
                     }
                 }
             }
