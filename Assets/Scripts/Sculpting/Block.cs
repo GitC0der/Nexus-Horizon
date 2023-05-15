@@ -30,7 +30,7 @@ namespace Prepping
             int index = noVoid ? Random.Range(1, count) : Random.Range(0, count);
 
             // Convert the index to an enum value and return it
-            return (Block) Enum.ToObject(typeof(Block), index);
+            return (Block)Enum.ToObject(typeof(Block), index);
         }
     }
 }

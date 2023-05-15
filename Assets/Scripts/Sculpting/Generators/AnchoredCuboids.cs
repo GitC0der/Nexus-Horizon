@@ -29,8 +29,9 @@ namespace Prepping.Generators
         private float maxThreshTotalVolume = 0.30f;
         
         // (1,1) yields usual results, (6,3) more compact ones, (8,2) compact with high towers, (5,4) gives a death-star look
-        private const int ONCE_STRENGTH = 3;     // High: compact        | Low: floaty
-        private const int MIN_STRENGTH = 1;      // High: uniform height | Low: much more variety
+        // Use (6,2) for the best results
+        private const int ONCE_STRENGTH = 6;     // High: compact        | Low: floaty
+        private const int MIN_STRENGTH = 2;      // High: uniform height | Low: much more variety
         
 
 

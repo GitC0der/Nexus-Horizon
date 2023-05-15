@@ -23,6 +23,12 @@ namespace Prepping
         public static Position3 operator -(Position3 a, Position3 b) => new(a.x - b.x, a.y - b.y, a.z - b.z);
 
         public static Position3 operator -(Position3 a) => new(-a.x, -a.y, -a.z);
+        
+        public static Position3 operator *(Position3 a, float d) => new ((int)Math.Round(a.x * d), (int)Math.Round(a.y * d), (int)Math.Round(a.z * d));
+
+        public static Position3 operator *(float d, Position3 a) => new ((int)Math.Round(a.x * d), (int)Math.Round(a.y * d), (int)Math.Round(a.z * d));
+
+        public static Position3 operator /(Position3 a, float d) => new ((int)Math.Round(a.x / d), (int)Math.Round(a.y / d), (int)Math.Round(a.z / d));
 
         public static bool operator ==(Position3 lhs, Position3 rhs) => lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
         

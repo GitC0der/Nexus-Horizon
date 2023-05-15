@@ -30,7 +30,7 @@ public class GameManager : MonoBehaviour {
     private Blockbox blockbox;
     private IGenerator generator;
     private bool instantGeneration = true;
-    private HashSet<Facade> _facades = new();
+    private HashSet<Surface> _surfaces = new();
 
     private HashSet<GameObject> cubes = new HashSet<GameObject>();
     
@@ -136,11 +136,14 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        GenerateOutsideTestFacade();
+        GenerateOutsideTestsurface();
         
-        // var facades = FindAllFacadesTest();
-        //
-        // GenerateSingleRandomFacadeRoof(facades);
+        //var surfaces = FindAllsurfacesTest();
+        var surfaces = Findsurfaces();
+        
+        //GenerateSingleRandomsurfaceRoof(surfaces);
+        //GenerateAllWallsurfaces(surfaces);
+        GenerateAllWallBorders(surfaces);
         
         OptimizeBlockBox();
         
@@ -148,40 +151,40 @@ public class GameManager : MonoBehaviour {
     }
 
 
-    private HashSet<Facade> FindAllFacadesTest() {
+    private HashSet<Surface> FindAllsurfacesTest() {
         List<GameObject> prefabs = new List<GameObject>() {parkPrefab, buildingPrefab, trainPrefab, walkwayPrefab, skybridgePrefab};
-        var facades = FindFacades();
-        foreach (var facade in facades) {
+        var surfaces = Findsurfaces();
+        foreach (var surface in surfaces) {
             
             
             Block block;
-            if (facade.GetOrientation() == Orientation.Roof) {
+            if (surface.GetOrientation() == Orientation.Roof) {
                 block = Block.Train;
-            } else if (facade.GetOrientation() == Orientation.Floor) {
+            } else if (surface.GetOrientation() == Orientation.Floor) {
                 block = Block.Park;
-            } else if (facade.GetOrientation() == Orientation.WallE) {
+            } else if (surface.GetOrientation() == Orientation.WallE) {
                 block = Block.Walkway;
-            } else if (facade.GetOrientation() == Orientation.WallW) {
+            } else if (surface.GetOrientation() == Orientation.WallW) {
                 block = Block.Walkway;
-            } else if (facade.GetOrientation() == Orientation.WallS) {
+            } else if (surface.GetOrientation() == Orientation.WallS) {
                 block = Block.Skybridge;
-            } else if (facade.GetOrientation() == Orientation.WallN) {
+            } else if (surface.GetOrientation() == Orientation.WallN) {
                 block = Block.Skybridge;
             } else {
                 throw new Exception("WHAT????");
             }
 
             /*
-            foreach (Position3 pos in facade.GetBlocks()) {
+            foreach (Position3 pos in surface.GetBlocks()) {
                 blockbox.ForceSetBlock(block, pos);
             }
             */
             
             
-            if (facade.GetOrientation() == Orientation.Roof) {
+            if (surface.GetOrientation() == Orientation.Roof) {
                 block = new List<Block>() { Block.Park, Block.Skybridge, Block.Train, Block.Walkway }[Random.Range(0, 4)];
                 block = Block.Train;
-                foreach (Position3 pos in facade.GetBlocks()) {
+                foreach (Position3 pos in surface.GetBlocks()) {
                     //blockbox.ForceSetBlock(Block.Park, pos);
                     blockbox.ForceSetBlock(block, pos);
                 }
@@ -190,28 +193,74 @@ public class GameManager : MonoBehaviour {
             
         }
 
-        return facades;
+        return surfaces;
 
     }
 
-    private void GenerateSingleRandomFacadeRoof(HashSet<Facade> facades) {
+    private void GenerateAllWallBorders(HashSet<Surface> surfaces) {
+        foreach (Surface surface in surfaces) {
+            if (surface.IsFacade()  && surface.GetWidth() > 2 && surface.GetHeight() > 2) {
+                var borders = surface.FindBorders(blockbox);
+                foreach (var (position, borderType) in borders) {
+                    Block block;
+                    switch (borderType) {
+                        case BorderType.Ceiling:
+                            block = Block.Park;
+                            break;
+                        case BorderType.Top:
+                            block = Block.Train;
+                            break;
+                        case BorderType.Ground:
+                            block = Block.Park;
+                            break;
+                        case BorderType.Overhang:
+                            block = Block.Train;
+                            break;
+                        case BorderType.Wall:
+                            block = Block.Park;
+                            break;
+                        case BorderType.None:
+                            block = Block.Train;
+                            break;
+                        default:
+                            block = Block.Skybridge;
+                            break;
+                        
+                    }
+                    blockbox.ForceSetBlock(block, position);
+
+                }
+
+            }
+        }
+    }
+    private void GenerateAllWallsurfaces(HashSet<Surface> surfaces) {
+        foreach (Surface surface in surfaces) {
+            if ((surface.GetConstantAxis() == ConstantAxis.X || surface.GetConstantAxis() == ConstantAxis.Z) && surface.GetWidth() > 4 && surface.GetHeight() > 4) {
+                SurfacePainter painter = new SurfacePainter(surface);
+                painter.AddToBlockbox(blockbox);
+            }
+        }
+    }
+
+    private void GenerateSingleRandomSurfaceRoof(HashSet<Surface> surfaces) {
         var p = 0;
-        var roofs = facades.Where(f => f.GetOrientation() == Orientation.Roof).ToList();
+        var roofs = surfaces.Where(f => f.GetOrientation() == Orientation.Roof).ToList();
         var highEnough = roofs.Where(f => f.GetFixedCoordinate() > 10).ToList();
         var largeEnough = highEnough.Where(f => f.GetWidth() > 6 || f.GetHeight() > 6).ToList();
         
-        DrawOneFacade(largeEnough[0]);
+        DrawOneSurface(largeEnough[0]);
     }
 
-    private void DrawOneFacade(Facade facade) {
-        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Roof1, facade.GetWidth(),
-            facade.GetHeight(), new Position2(0,0), 'B');
+    private void DrawOneSurface(Surface surface) {
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Roof1, surface.GetWidth(),
+            surface.GetHeight(), new Position2(0,0), 'B');
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }
 
-        for (int x = 0; x < facade.GetWidth(); x++) {
-            for (int z = 0; z < facade.GetHeight(); z++) {
+        for (int x = 0; x < surface.GetWidth(); x++) {
+            for (int z = 0; z < surface.GetHeight(); z++) {
                 Position2 pos = new Position2();
                 Block block;
                 var output = wfc.GetOutput();
@@ -236,11 +285,11 @@ public class GameManager : MonoBehaviour {
                     
                     
                     if (block != Block.Void) {
-                        blockbox.ForceSetBlock(block, facade.GetMinCorner3() + new Position3(x,0,z));
+                        blockbox.ForceSetBlock(block, surface.GetMinCorner3() + new Position3(x,0,z));
                     }
                     
 
-                    foreach (Position3 p in facade.GetBlocks()) {
+                    foreach (Position3 p in surface.GetBlocks()) {
                         blockbox.ForceSetBlock(Block.Skybridge, p);
                     }
                 }
@@ -249,21 +298,21 @@ public class GameManager : MonoBehaviour {
         }
     }
 
-    private HashSet<Facade> FindFacades() {
+    private HashSet<Surface> Findsurfaces() {
         /*
-            - Create a list containing all facades, which are lists of positions
-            - Create a hashset of all blocks in facades
+            - Create a list containing all surfaces, which are lists of positions
+            - Create a hashset of all blocks in surfaces
             - For every block of type null:
                 - If block has at least one building neighbor
-                    - For each of its neighbor building that is NOT already in a facade
-                        - Create an empty list for the current facade
+                    - For each of its neighbor building that is NOT already in a surface
+                        - Create an empty list for the current surface
                         - Do a DFS to get all the adjacent buildings
                         - Add them all into that list
-                        - Add that list to the list of facades
+                        - Add that list to the list of surfaces
         */
 
-        HashSet<Facade> facades = new();
-        HashSet<Position3> blocksInFacades = new();
+        HashSet<Surface> surfaces = new();
+        HashSet<Position3> blocksInsurfaces = new();
         
         // Iterating over all blocks
         for (int x = 0; x < blockbox.sizeX; x++) {
@@ -275,12 +324,14 @@ public class GameManager : MonoBehaviour {
                     // Checking all blocks that are null and have at least one neighbor building
                     if (blockbox.BlockAt(currentPos) == Block.Void && neighbors.ContainsValue(Block.Building)) {
                         foreach (var (relativeNeighborPos, block) in neighbors) {
-                            if (block == Block.Building && !blocksInFacades.Contains(currentPos + relativeNeighborPos)) {
+                            if (block == Block.Building && !blocksInsurfaces.Contains(currentPos + relativeNeighborPos)) {
                                 
-                                // Retrieving adjacent facade blocks with BFS
-                                HashSet<Position3> currentFacade = BfsFacade(currentPos, relativeNeighborPos);
-                                facades.Add(new Facade(currentFacade, -relativeNeighborPos));
-                                blocksInFacades.AddRange(currentFacade);
+                                // Retrieving adjacent surface blocks with BFS
+                                HashSet<Position3> currentsurface = Bfssurface(currentPos, relativeNeighborPos);
+                                if (currentsurface.Count > 1) {
+                                    surfaces.Add(new Surface(currentsurface, -relativeNeighborPos));
+                                    blocksInsurfaces.AddRange(currentsurface);
+                                }
                             }
                         }
                     }
@@ -288,17 +339,17 @@ public class GameManager : MonoBehaviour {
             }
         }
 
-        return facades;
+        return surfaces;
     }
 
-    private HashSet<Position3> BfsFacade(Position3 startingPos, Position3 normalDirection) {
+    private HashSet<Position3> Bfssurface(Position3 startingPos, Position3 normalDirection) {
         Queue<Position3> queue = new Queue<Position3>();
-        HashSet<Position3> currentFacade = new();
+        HashSet<Position3> currentsurface = new();
         queue.Enqueue(startingPos + normalDirection);
         
         while (queue.Count != 0) {
             Position3 bfsPosition = queue.Dequeue();
-            currentFacade.Add(bfsPosition);
+            currentsurface.Add(bfsPosition);
 
             var bfsNeighbors = blockbox.GetNeighbors(bfsPosition);
 
@@ -318,7 +369,7 @@ public class GameManager : MonoBehaviour {
                     if (relativeBfsNeighborPos != normalDirection
                         && relativeBfsNeighborPos != -normalDirection
                         && b == Block.Building
-                        && !currentFacade.Contains(examined) && !queue.Contains(examined)
+                        && !currentsurface.Contains(examined) && !queue.Contains(examined)
                         && !(block1 == Block.Building && block2 == Block.Building)) {
                         queue.Enqueue(examined);
                     }
@@ -338,7 +389,7 @@ public class GameManager : MonoBehaviour {
                         if (relativeBfsNeighborPos != normalDirection 
                             && relativeBfsNeighborPos != -normalDirection 
                             && b == Block.Building 
-                            && !currentFacade.Contains(examined) && !queue.Contains(examined)) {
+                            && !currentsurface.Contains(examined) && !queue.Contains(examined)) {
                             queue.Enqueue(examined);
                         }
                     }
@@ -348,11 +399,11 @@ public class GameManager : MonoBehaviour {
 
         }
 
-        return currentFacade;
+        return currentsurface;
     }
 
 
-    private void GenerateOutsideTestFacade() {
+    private void GenerateOutsideTestsurface() {
         int height = 50;
         int width = 15;
         Position3 origin = new Position3(-height, 30, -width + 70);
