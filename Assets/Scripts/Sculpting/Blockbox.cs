@@ -16,7 +16,7 @@ namespace Prepping
         public readonly int sizeY;
         public readonly int sizeZ;
 
-        private Block[,,] blocks;
+        private Block[][][] blocks;
         
         /// <summary>
         ///     Create a blockbox
@@ -29,7 +29,6 @@ namespace Prepping
             this.sizeY = sizeY;
             this.sizeZ = sizeZ;
             
-            blocks = new Block[sizeX, sizeY, sizeZ];
             EmptyBox();
         }
 
@@ -37,10 +36,13 @@ namespace Prepping
         ///     Empty the blockbox, i.e set all blocks to Block.NULL
         /// </summary>
         public void EmptyBox() {
+            blocks = new Block[sizeX][][];
             for (int x = 0; x < sizeX; x++) {
+                blocks[x] = new Block[sizeY][];
                 for (int y = 0; y < sizeY; y++) {
+                    blocks[x][y] = new Block[sizeZ];
                     for (int z = 0; z < sizeZ; z++) {
-                        blocks[x, y, z] = Block.Void;
+                        blocks[x][y][z] = Block.Void;
                         //blocks[x, y, z] = Block.NULL;
                     }
                 } 
@@ -57,7 +59,7 @@ namespace Prepping
             if (!IsInsideBox(position)) {
                 throw new ArgumentException($"Position {position} was not inside the blockbox");
             }
-            return blocks[position.x, position.y, position.z];
+            return blocks[position.x][position.y][position.z];
         } 
         
         private bool IsInside(int value, int min, int max) {
@@ -75,7 +77,7 @@ namespace Prepping
                 return false;
             }
 
-            blocks[position.x, position.y, position.z] = block;
+            blocks[position.x][position.y][position.z] = block;
             return true;
         }
 
@@ -110,7 +112,7 @@ namespace Prepping
         private void Check(Dictionary<Position3, Block> acc, Position3 position, Position3 displ) {
             Position3 newPos = position + displ;
             if (IsInsideBox(newPos)) {
-                Block block = blocks[newPos.x, newPos.y, newPos.z];
+                Block block = blocks[newPos.x][newPos.y][newPos.z];
                 //if (!block.Equals(Block.NULL)) {
                     acc.Add(displ, block);
                 //}
