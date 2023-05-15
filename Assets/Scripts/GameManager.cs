@@ -5,8 +5,10 @@ using Painting;
 using Prepping;
 using Prepping.Generators;
 using Unity.VisualScripting;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+using Light = UnityEngine.Light;
 using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour {
@@ -18,6 +20,7 @@ public class GameManager : MonoBehaviour {
     public GameObject walkwayPrefab;
     public GameObject plazaPrefab;
     public GameObject utilitiesPrefab;
+    public GameObject lightPrefab;
     private GameObject voidPrefab;
 
     public Dictionary<Block, GameObject> prefabs;
@@ -146,7 +149,9 @@ public class GameManager : MonoBehaviour {
         var surfaces = Findsurfaces();
         
         //GenerateSingleRandomsurfaceRoof(surfaces);
-        GenerateAllWallsurfaces(surfaces);
+        GenerateAllFacades(surfaces);
+        GenerateAllFloors(surfaces);
+        
         //GenerateAllWallBorders(surfaces);
         
         OptimizeBlockBox();
@@ -238,9 +243,26 @@ public class GameManager : MonoBehaviour {
             }
         }
     }
-    private void GenerateAllWallsurfaces(HashSet<Surface> surfaces) {
-        foreach (Surface surface in surfaces) {
-            if ((surface.GetConstantAxis() == ConstantAxis.X || surface.GetConstantAxis() == ConstantAxis.Z) && surface.GetWidth() > 4 && surface.GetHeight() > 4) {
+
+    private void GenerateAllFloors(HashSet<Surface> allSurfaces) {
+        foreach (Surface surface in allSurfaces) {
+            if (surface.IsFloor() && surface.GetBlocks().Count > 2) {
+                FloorPainter fp = new FloorPainter(surface);
+                var lights = fp.GetLights();
+                foreach (var (pos, light) in lights) {
+                    var lightObject = Instantiate(lightPrefab, pos, Quaternion.identity);
+                    lightObject.GetComponent<Light>().color = light.GetColor();
+                    lightObject.GetComponent<Light>().range = light.GetRadius();
+                }
+            }
+        }
+        
+        Lightmapping.BakeAsync();
+    }
+    
+    private void GenerateAllFacades(HashSet<Surface> allSurfaces) {
+        foreach (Surface surface in allSurfaces) {
+            if (surface.IsFacade() && surface.GetWidth() > 4 && surface.GetHeight() > 4) {
                 FacadePainter painter = new FacadePainter(surface, blockbox);
                 painter.AddToBlockbox(blockbox);
             }
