@@ -17,10 +17,10 @@ namespace Painting
 
         private const int ENTROPY_COMPLETE = int.MaxValue;
         private const bool IS_BORDERLESS = false;
-        private List<Tile> tiles;
+        private HashSet<Tile> tiles;
         private bool isDone;
         private PriorityQueue<Position2> queue;
-        private List<char> inputChars;
+        private HashSet<char> inputChars;
 
         private Tile output;
         private Dictionary<Position2, HashSet<Tile>> possibilities;
@@ -117,7 +117,7 @@ namespace Painting
             "------X---o----ooooo",
             "------X---o---------"
         });
-        
+
         // TODO: Fix "sticking out of table" error when input length != input width
         
         // TODO: Add backtracking
@@ -135,19 +135,35 @@ namespace Painting
         /// <param name="initPos">The position of the first character to be placed</param>
         /// <param name="initChar">The first character to be placed</param>
         public WaveFunctionCollapse(Tile inputMap, int outputWidth, int outputHeight, Position2 initPos, char initChar) {
-            tiles = new List<Tile>();
+            tiles = new HashSet<Tile>();
             for (int row = 0; row <= inputMap.Width() - DIMENSION; row++) {
                 for (int col = 0; col <= inputMap.Height() - DIMENSION; col++) {
                     tiles.Add(inputMap.GetSubTile(new Position2(col, row), new Position2(col + DIMENSION - 1, row + DIMENSION - 1), false));
                 }
             }
 
+            inputChars = inputMap.GetChars();
+
+            Initialize(outputWidth, outputHeight, initPos, initChar);
+
+        }
+        
+        /// <summary>
+        ///     This is an optimized constructor. That way, no need to copy the input tiles and char each and every time.
+        ///     Note that you need to precompute the inputTiles and chars.
+        ///     For a single generation, prefer the other constructor
+        /// </summary>
+        public WaveFunctionCollapse(HashSet<Tile> inputTiles, HashSet<char> inputCharacters, int outputWidth, int outputHeight, Position2 initPos, char initChar) {
+            tiles = inputTiles;
+            inputChars = inputCharacters;
+            Initialize(outputWidth, outputHeight, initPos, initChar);
+        }
+
+        private void Initialize(int outputWidth, int outputHeight, Position2 initPos, char initChar) {
             if (initPos.x >= outputWidth || initPos.y >= outputHeight) {
                 throw new ArgumentException($"Initpos {initPos} is outside the output (of width = {outputWidth} and height = {outputHeight})");
             }
             
-            inputChars = inputMap.GetChars();
-
             output = new Tile(outputHeight, outputWidth);
 
             possibilities = new Dictionary<Position2, HashSet<Tile>>();
@@ -165,9 +181,8 @@ namespace Painting
             }
             
             SetCharAndUpdateAll(initPos, initChar);
-
         }
-        
+
         /// <summary>
         ///     Simply returns the output as a string. For visualization purposes only! Use GetOutput otherwise
         /// </summary>
@@ -486,7 +501,7 @@ namespace Painting
                 return new ArraySegment<char>(table[lineNumber], from, to - from + 1).ToArray();
             }
 
-            public List<char> GetChars() {
+            public HashSet<char> GetChars() {
                 HashSet<char> chars = new();
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
@@ -497,7 +512,7 @@ namespace Painting
                     }
                 }
 
-                return chars.ToList();
+                return chars;
             }
             
             public char[][] GetTable() => table;
@@ -520,6 +535,17 @@ namespace Painting
                 }
 
                 return positions;
+            }
+
+            public HashSet<Tile> GetAllSubtiles() {
+                HashSet<Tile> tiles = new HashSet<Tile>();
+                for (int row = 0; row <= width - DIMENSION; row++) {
+                    for (int col = 0; col <= height - DIMENSION; col++) {
+                        tiles.Add(GetSubTile(new Position2(col, row), new Position2(col + DIMENSION - 1, row + DIMENSION - 1), false));
+                    }
+                }
+
+                return tiles;
             }
 
             public Dictionary<Position2, Tile> SubTilesContaining(Position2 pos, int dimension) {
