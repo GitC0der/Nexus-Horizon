@@ -21,8 +21,8 @@ namespace Painting
         private Position3 _minCorner3;
         private Position3 _maxCorner3;
         private Dictionary<Position3, BorderType> _border;
-        
-        
+
+
         public Surface(HashSet<Position3> blocks, Position3 normal) {
             if (blocks.Count <= 1) throw new ArgumentException("Surface must have at least two blocks!");
             _blocks = blocks;
@@ -94,8 +94,9 @@ namespace Painting
             _border = new Dictionary<Position3, BorderType>();
         }
         
-        public Dictionary<Position3, BorderType> FindBorders(Blockbox blockbox) {
-
+        public Dictionary<Position3, BorderType> GetBorders(Blockbox blockbox) {
+            if (_border.Count != 0) return _border;
+            
             Action<Position3, Position3, BorderType, BorderType> AddToBorder = (neighborPos, prevPos, whenVoid, whenOther) => {
                 BorderType borderType = BorderType.None;
                 bool doAdd = false;
@@ -110,19 +111,17 @@ namespace Painting
             };
 
             //if (_constantAxis is ConstantAxis.Z) {
-            if (5 > 2) {
-                foreach (Position3 position in _blocks) {
-                    // TODO: May cause issues
-                    if (blockbox.IsStrictlyInside(position)) {
-                        Position3 leftPos = position + _widthAxis / GetWidth();
-                        Position3 rightPos = position - _widthAxis / GetWidth();
-                        Position3 belowPos = position - _heightAxis / GetHeight();
-                        Position3 abovePos = position + _heightAxis / GetHeight();
-                        AddToBorder(leftPos, position, BorderType.None, BorderType.Wall);
-                        AddToBorder(rightPos, position, BorderType.None, BorderType.Wall);
-                        AddToBorder(belowPos, position, BorderType.Overhang, BorderType.Ground);
-                        AddToBorder(abovePos, position, BorderType.Top, BorderType.Ceiling);
-                    }
+            foreach (Position3 position in _blocks) {
+                // TODO: May cause issues
+                if (blockbox.IsStrictlyInside(position)) {
+                    Position3 leftPos = position + _widthAxis / GetWidth();
+                    Position3 rightPos = position - _widthAxis / GetWidth();
+                    Position3 belowPos = position - _heightAxis / GetHeight();
+                    Position3 abovePos = position + _heightAxis / GetHeight();
+                    AddToBorder(leftPos, position, BorderType.None, BorderType.Wall);
+                    AddToBorder(rightPos, position, BorderType.None, BorderType.Wall);
+                    AddToBorder(belowPos, position, BorderType.Overhang, BorderType.Ground);
+                    AddToBorder(abovePos, position, BorderType.Top, BorderType.Ceiling);
                 }
             }
 
@@ -163,6 +162,8 @@ namespace Painting
         public Orientation GetOrientation() => _orientation;
 
         public bool IsFacade() => _constantAxis == ConstantAxis.X || _constantAxis == ConstantAxis.Z;
+
+        public bool IsFloor() => _constantAxis == ConstantAxis.Y && _normal == Position3.up;
 
     }
     

@@ -146,8 +146,8 @@ public class GameManager : MonoBehaviour {
         var surfaces = Findsurfaces();
         
         //GenerateSingleRandomsurfaceRoof(surfaces);
-        //GenerateAllWallsurfaces(surfaces);
-        GenerateAllWallBorders(surfaces);
+        GenerateAllWallsurfaces(surfaces);
+        //GenerateAllWallBorders(surfaces);
         
         OptimizeBlockBox();
         
@@ -204,7 +204,7 @@ public class GameManager : MonoBehaviour {
     private void GenerateAllWallBorders(HashSet<Surface> surfaces) {
         foreach (Surface surface in surfaces) {
             if (surface.IsFacade()  && surface.GetWidth() > 2 && surface.GetHeight() > 2) {
-                var borders = surface.FindBorders(blockbox);
+                var borders = surface.GetBorders(blockbox);
                 foreach (var (position, borderType) in borders) {
                     Block block;
                     switch (borderType) {
@@ -241,7 +241,7 @@ public class GameManager : MonoBehaviour {
     private void GenerateAllWallsurfaces(HashSet<Surface> surfaces) {
         foreach (Surface surface in surfaces) {
             if ((surface.GetConstantAxis() == ConstantAxis.X || surface.GetConstantAxis() == ConstantAxis.Z) && surface.GetWidth() > 4 && surface.GetHeight() > 4) {
-                SurfacePainter painter = new SurfacePainter(surface);
+                FacadePainter painter = new FacadePainter(surface, blockbox);
                 painter.AddToBlockbox(blockbox);
             }
         }
