@@ -41,7 +41,9 @@ namespace Painting
             Border border = _surface.GetBorder(BorderType.None);
             if (border != null) {
                 foreach (var (position, facing) in border.GetDirections()) {
-                    _propManager.Instantiate(_propManager.Railing(), position.AsVector3() + 0.4f*facing + 0.3f*Vector3.up, facing);
+                    Vector3 displ = 0.4f * facing + 0.3f * Vector3.up;
+                    displ = displ + new Vector3(facing.y,0, -facing.x);
+                    _propManager.Instantiate(_propManager.Railing(), position.AsVector3() + displ, facing);
                 }
             }
         }

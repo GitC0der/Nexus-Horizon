@@ -37,7 +37,7 @@ namespace DefaultNamespace
             }
 
             //skyboxMaterial.color = new Color(0, 0, 0, 1);
-            skyboxMaterial.color = new Color(0.2f, 0.2f, 0.2f, 1);
+            skyboxMaterial.color = new Color(0.35f, 0.35f, 0.35f, 1);
         }
     }
 }
