@@ -118,7 +118,7 @@ public class GameManager : MonoBehaviour {
         }
 
         if (!instantGeneration) {
-            GenerateBlock();
+            //GenerateBlock();
         }
         
     }
@@ -127,6 +127,8 @@ public class GameManager : MonoBehaviour {
         foreach (GameObject cube in cubes) {
             Destroy(cube);
         }
+        
+        _propManager.RemoveAllProps();
 
         cubes = new HashSet<GameObject>();
         /*
@@ -146,7 +148,7 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        GenerateOutsideTestsurface();
+        //GenerateOutsideTestsurface();
         
         //var surfaces = FindAllsurfacesTest();
         var surfaces = Findsurfaces();
@@ -156,13 +158,15 @@ public class GameManager : MonoBehaviour {
         GenerateAllFloors(surfaces);
         
         //GenerateAllWallBorders(surfaces);
-        //GenerateWallBorders(BorderType.None, surfaces);
+        //GenerateFloorBorders(BorderType.None, surfaces);
         
         OptimizeBlockBox();
         
         SpawnBlocks();
         
         //CombineMeshes();
+        
+        Lightmapping.BakeAsync();
 
     }
 
@@ -213,7 +217,7 @@ public class GameManager : MonoBehaviour {
 
     }
 
-    private void GenerateWallBorders(BorderType borderType, HashSet<Surface> surfaces) {
+    private void GenerateFloorBorders(BorderType borderType, HashSet<Surface> surfaces) {
         foreach (Surface surface in surfaces) {
             if (surface.IsFloor()) {
                 foreach (Position3 position in surface.GetBorder(borderType)?.GetPositions() ?? new HashSet<Position3>()) {

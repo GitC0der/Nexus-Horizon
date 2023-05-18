@@ -21,6 +21,14 @@ namespace Painting
             _props.Add(prop);
             return prop.GetGameObject();
         }
+
+        public void RemoveAllProps() {
+            foreach (ActualProp prop in _props) {
+                Object.Destroy(prop.GetGameObject());
+            }
+
+            _props = new HashSet<ActualProp>();
+        }
     }
 
     public class ActualProp

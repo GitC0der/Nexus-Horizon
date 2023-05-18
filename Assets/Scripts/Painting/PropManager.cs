@@ -27,6 +27,10 @@ namespace Painting
         public GameObject Instantiate(PropPrefab prefab, Vector3 position, Vector3 facing) {
             return _propBox.AddProp(prefab, position, facing);
         }
+
+        public void RemoveAllProps() {
+            _propBox.RemoveAllProps();
+        }
         
     }
     
