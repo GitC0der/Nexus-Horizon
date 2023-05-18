@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DefaultNamespace;
+using JetBrains.Annotations;
 using Prepping;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Painting
@@ -20,13 +23,16 @@ namespace Painting
         private Position2 _maxCorner;
         private Position3 _minCorner3;
         private Position3 _maxCorner3;
-        private Dictionary<Position3, BorderType> _border;
+        //private Dictionary<Position3, BorderType> _border;
+        private Dictionary<BorderType, Border> _borders;
+        private Blockbox _blockbox;
 
 
-        public Surface(HashSet<Position3> blocks, Position3 normal) {
+        public Surface(HashSet<Position3> blocks, Position3 normal, Blockbox blockbox) {
             if (blocks.Count <= 1) throw new ArgumentException("Surface must have at least two blocks!");
             _blocks = blocks;
             _normal = normal;
+            _blockbox = blockbox;
             if (normal == new Position3(0, 1, 0)) {
                 _orientation = Orientation.Roof;
                 _constantAxis = ConstantAxis.Y;
@@ -91,10 +97,84 @@ namespace Painting
                 _maxCorner3 = new Position3(_fixedCoordinate, yMax, zMax);
             }
 
-            _border = new Dictionary<Position3, BorderType>();
+            //_border = new Dictionary<Position3, BorderType>();
+            _borders = new Dictionary<BorderType, Border>();
+        }
+
+        public bool IsInBorders(Position3 position) {
+            foreach (var (_, border) in _borders) {
+                if (border.Contains(position)) return true;
+            }
+
+            return false;
+        }
+
+        //public bool HasBorder(BorderType type) => GetBorder(type).Exist();
+        public bool HasBorder(BorderType type) => GetBorder(type) != null;
+
+        [CanBeNull]
+        public Border GetBorder(BorderType borderType) {
+            if (_borders.Count == 0) GetBorders();
+            if (!_borders.ContainsKey(borderType)) return null;
+            return _borders[borderType];
         }
         
+        /*
+        public Optional<Border> GetBorder(BorderType borderType) {
+            if (_borders.Count == 0) GetBorders();
+            if (!_borders.ContainsKey(borderType)) return new Optional<Border>(null);
+            return new Optional<Border>(_borders[borderType]);
+        }
+        */
+        
+        public Dictionary<BorderType, Border> GetBorders() {
+            if (_borders.Count != 0) return _borders;
+
+            Action<Position3, Position3, BorderType, BorderType> AddToBorder = (neighborPos, prevPos, whenVoid, whenOther) => {
+                BorderType borderType = BorderType.None;
+                bool doAdd = false;
+                if (_blockbox.BlockAt(neighborPos) == Block.Void) {
+                    borderType = whenVoid;
+                    doAdd = true;
+                } else if (!_blocks.Contains(neighborPos) && _blockbox.BlockAt(neighborPos + _normal) != Block.Void) {
+                    borderType = whenOther;
+                    doAdd = true;
+                }
+
+                if (!doAdd) return;
+                foreach (var (_, border) in _borders) {
+                    if (border.Contains(prevPos)) return;
+                }
+
+                if (!_borders.ContainsKey(borderType)) _borders[borderType] = new Border(borderType);
+                _borders[borderType].Add(prevPos, prevPos.To(neighborPos));
+            };
+
+            BorderType belowVoid = IsFacade() ? BorderType.Overhang : BorderType.None;
+            BorderType belowOther = IsFacade() ? BorderType.Ground : BorderType.Wall;
+            BorderType aboveVoid = IsFacade() ? BorderType.Top : BorderType.None;
+            BorderType aboveOther = IsFacade() ? BorderType.Ceiling : BorderType.Wall;
+            
+            foreach (Position3 position in _blocks) {
+                // TODO: May cause issues
+                if (_blockbox.IsStrictlyInside(position)) {
+                    Position3 leftPos = position + _widthAxis / GetWidth();
+                    Position3 rightPos = position - _widthAxis / GetWidth();
+                    Position3 belowPos = position - _heightAxis / GetHeight();
+                    Position3 abovePos = position + _heightAxis / GetHeight();
+                    AddToBorder(leftPos, position, BorderType.None, BorderType.Wall);
+                    AddToBorder(rightPos, position, BorderType.None, BorderType.Wall);
+                    AddToBorder(belowPos, position, belowVoid, belowOther);
+                    AddToBorder(abovePos, position, aboveVoid, aboveOther);
+                }
+            }
+
+            return _borders;
+        }
+        
+        /*
         public Dictionary<Position3, BorderType> GetBorders(Blockbox blockbox) {
+
             if (_border.Count != 0) return _border;
             
             Action<Position3, Position3, BorderType, BorderType> AddToBorder = (neighborPos, prevPos, whenVoid, whenOther) => {
@@ -127,6 +207,7 @@ namespace Painting
 
             return _border;
         }
+        */
 
         public bool Contains(Position3 pos) => _blocks.Contains(pos);
 
@@ -165,6 +246,25 @@ namespace Painting
 
         public bool IsFloor() => _constantAxis == ConstantAxis.Y && _normal == Position3.up;
 
+    }
+
+    public class Border
+    {
+        private Dictionary<Position3, Vector3> _blocks = new();
+        private BorderType _borderType;
+
+        public Border(BorderType borderType) {
+            _borderType = borderType;
+        }
+
+        public void Add(Position3 position, Vector3 facing) {
+            _blocks[position] = facing;
+        }
+
+        public bool Contains(Position3 block) => _blocks.ContainsKey(block);
+
+        public Dictionary<Position3, Vector3> GetDirections() => _blocks;
+        public HashSet<Position3> GetPositions() => _blocks.Keys.ToHashSet();
     }
     
     public enum Orientation

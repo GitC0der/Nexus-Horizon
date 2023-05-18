@@ -11,6 +11,10 @@ namespace DefaultNamespace
 
         void Start()
         {
+
+        }
+
+        public void EnableShader() {
             // Change the ambient light color
             RenderSettings.ambientLight = ambientLightColor;
 
@@ -32,8 +36,8 @@ namespace DefaultNamespace
                 directionalLight.SetActive(false);
             }
 
-            skyboxMaterial.color = new Color(0, 0, 0, 1);
-
+            //skyboxMaterial.color = new Color(0, 0, 0, 1);
+            skyboxMaterial.color = new Color(0.2f, 0.2f, 0.2f, 1);
         }
     }
 }

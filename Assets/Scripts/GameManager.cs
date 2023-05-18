@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using DefaultNamespace;
 using Painting;
 using Prepping;
 using Prepping.Generators;
@@ -8,11 +9,15 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Serialization;
 using Light = UnityEngine.Light;
 using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour {
 
+    public bool highGraphicsMode;
+    public bool useProps;
+    
     public GameObject buildingPrefab;
     public GameObject parkPrefab;
     public GameObject trainPrefab;
@@ -21,6 +26,9 @@ public class GameManager : MonoBehaviour {
     public GameObject plazaPrefab;
     public GameObject utilitiesPrefab;
     public GameObject lightPrefab;
+
+    private PropManager _propManager;
+    
     private GameObject voidPrefab;
 
     public Dictionary<Block, GameObject> prefabs;
@@ -57,6 +65,11 @@ public class GameManager : MonoBehaviour {
     
     // Use this for initialisation
     void Start () {
+        blockbox = new Blockbox(50, 80, 50);
+
+        _propManager = GetComponentInChildren<PropManager>();
+        _propManager.Initialize(blockbox);
+        
         prefabs = new Dictionary<Block, GameObject>() {
             { Block.Building, buildingPrefab },
             { Block.Park, parkPrefab },
@@ -67,25 +80,15 @@ public class GameManager : MonoBehaviour {
             { Block.Plaza, plazaPrefab},
             { Block.Utilities , utilitiesPrefab}
         };
-        blockbox = new Blockbox(50, 80, 50);
-        //blockbox = new Blockbox(30, 30, 30);
         
         isRunning = true;
-        
-        // Selectects the type of generator
-        //generator = new RandomCuboids(blockbox, true);
-        //generator = new NeighborDetectionGen(blockbox);
 
+        if (highGraphicsMode) {
+            GetComponentInChildren<ShaderController>().EnableShader();
+        }
+        
         if (instantGeneration) {
             Regenerate();
-            /*
-            while (!generator.IsDone()) {
-                GenerateBlock();
-            }
-            OptimizeBlockBox();
-            SpawnBlocks();
-            */
-            //CombineMeshes();
         }
         
     }
@@ -149,14 +152,17 @@ public class GameManager : MonoBehaviour {
         var surfaces = Findsurfaces();
         
         //GenerateSingleRandomsurfaceRoof(surfaces);
-        GenerateAllFacades(surfaces);
+        //GenerateAllFacades(surfaces);
         GenerateAllFloors(surfaces);
         
-        //GenerateAllWallBorders(surfaces);
+        GenerateAllWallBorders(surfaces);
         
         OptimizeBlockBox();
         
         SpawnBlocks();
+        
+        //CombineMeshes();
+
     }
 
 
@@ -209,7 +215,38 @@ public class GameManager : MonoBehaviour {
     private void GenerateAllWallBorders(HashSet<Surface> surfaces) {
         foreach (Surface surface in surfaces) {
             if (surface.IsFacade()  && surface.GetWidth() > 2 && surface.GetHeight() > 2) {
-                var borders = surface.GetBorders(blockbox);
+                foreach (var (borderType, border) in surface.GetBorders()) {
+                    Block block;
+                    switch (borderType) {
+                        case BorderType.Ceiling:
+                            block = Block.Park;
+                            break;
+                        case BorderType.Top:
+                            block = Block.Train;
+                            break;
+                        case BorderType.Ground:
+                            block = Block.Skybridge;
+                            break;
+                        case BorderType.Overhang:
+                            block = Block.Walkway;
+                            break;
+                        case BorderType.Wall:
+                            block = Block.Plaza;
+                            break;
+                        case BorderType.None:
+                            block = Block.Utilities;
+                            break;
+                        default:
+                            block = Block.Skybridge;
+                            break;
+                    }
+
+                    foreach (Position3 pos in border.GetPositions()) {
+                        blockbox.ForceSetBlock(block, pos);
+                    }
+                }
+                /*
+                var borders = surface.GetBorders();
                 foreach (var (position, borderType) in borders) {
                     Block block;
                     switch (borderType) {
@@ -239,7 +276,7 @@ public class GameManager : MonoBehaviour {
                     blockbox.ForceSetBlock(block, position);
 
                 }
-
+                */
             }
         }
     }
@@ -247,15 +284,20 @@ public class GameManager : MonoBehaviour {
     private void GenerateAllFloors(HashSet<Surface> allSurfaces) {
         foreach (Surface surface in allSurfaces) {
             if (surface.IsFloor() && surface.GetBlocks().Count > 2) {
-                FloorPainter fp = new FloorPainter(surface);
-                var lights = fp.GetLights();
-                foreach (var (pos, light) in lights) {
-                    var lightObject = Instantiate(lightPrefab, pos, Quaternion.identity);
-                    lightObject.GetComponent<Light>().color = light.GetColor();
-                    lightObject.GetComponent<Light>().range = light.GetRadius();
+                FloorPainter fp = new FloorPainter(surface, blockbox, _propManager, highGraphicsMode);
+                if (highGraphicsMode) {
+                    var lights = fp.GetLights();
+                    foreach (var (pos, light) in lights) {
+                        var lightObject = Instantiate(lightPrefab, pos, Quaternion.identity);
+                        lightObject.GetComponent<Light>().color = light.GetColor();
+                        lightObject.GetComponent<Light>().range = light.GetRadius();
+                    } 
                 }
+                
             }
         }
+        
+        
         
         Lightmapping.BakeAsync();
     }
@@ -355,7 +397,7 @@ public class GameManager : MonoBehaviour {
                                 // Retrieving adjacent surface blocks with BFS
                                 HashSet<Position3> currentsurface = Bfssurface(currentPos, relativeNeighborPos);
                                 if (currentsurface.Count > 1) {
-                                    surfaces.Add(new Surface(currentsurface, -relativeNeighborPos));
+                                    surfaces.Add(new Surface(currentsurface, -relativeNeighborPos, blockbox));
                                     blocksInsurfaces.AddRange(currentsurface);
                                 }
                             }
@@ -484,13 +526,14 @@ public class GameManager : MonoBehaviour {
     }
 
     private void SpawnBlocks() {
+        GameObject cubeHolder = GameObject.Find("Cube Holder");
         for (int x = 0; x < blockbox.sizeX; x++) {
             for (int y = 0; y < blockbox.sizeY; y++) {
                 for (int z = 0; z < blockbox.sizeZ; z++) {
                     Position3 blockPosition = new Position3(x, y, z);
                     Block block = blockbox.BlockAt(blockPosition);
                     if (block != Block.Void) {
-                        GameObject obj = Instantiate(PrefabFrom(block), blockPosition.AsVector3(), Quaternion.identity);
+                        GameObject obj = Instantiate(PrefabFrom(block), blockPosition.AsVector3(), Quaternion.identity, cubeHolder.transform);
                         cubes.Add(obj);
                     }
                 }
@@ -535,39 +578,45 @@ public class GameManager : MonoBehaviour {
             blockbox.ForceSetBlock(Block.Void, pos);
         }
     }
-
+    
     private void CombineMeshes() {
-        List<Mesh> meshes = new List<Mesh>();
-        
-        foreach (GameObject cube in cubes) {
-            MeshFilter cubeMeshFilter = cube.GetComponent<MeshFilter>();
+        // Get all the child cubes in Cube Holder
+        GameObject cubeHolder = GameObject.Find("Cube Holder");
+        Transform[] cubeTransforms = cubeHolder.GetComponentsInChildren<Transform>();
+    
+        List<MeshFilter> meshFilters = new List<MeshFilter>();
+    
+        foreach (Transform cubeTransform in cubeTransforms) {
+            MeshFilter cubeMeshFilter = cubeTransform.gameObject.GetComponent<MeshFilter>();
             if (cubeMeshFilter != null) {
-                meshes.Add(cubeMeshFilter.sharedMesh);
+                meshFilters.Add(cubeMeshFilter);
             }
         }
-        
+    
         // Create an array of CombineInstance objects
-        CombineInstance[] combineInstances = new CombineInstance[meshes.Count];
-        for (int i = 0; i < meshes.Count; i++) {
-            combineInstances[i].mesh = meshes[i];
-            combineInstances[i].transform = Matrix4x4.identity;
+        CombineInstance[] combineInstances = new CombineInstance[meshFilters.Count];
+        for (int i = 0; i < meshFilters.Count; i++) {
+            combineInstances[i].mesh = meshFilters[i].sharedMesh;
+            combineInstances[i].transform = meshFilters[i].transform.localToWorldMatrix;
         }
-
+    
         // Create a new mesh and combine the meshes into it
-        Mesh combinedMesh = new Mesh();
-        combinedMesh.indexFormat = IndexFormat.UInt32;
-        combinedMesh.CombineMeshes(combineInstances);
-
+        Mesh combinedMesh = new Mesh {
+            indexFormat = IndexFormat.UInt32
+        };
+        combinedMesh.CombineMeshes(combineInstances, true, true);
+    
         // Set the combined mesh to the MeshFilter component on the empty game object
-        MeshFilter combinedMeshFilter = GameObject.Find("CombinedMesh").GetComponent<MeshFilter>();
+        GameObject combinedMeshObj = new GameObject("CombinedMesh");
+        MeshFilter combinedMeshFilter = combinedMeshObj.AddComponent<MeshFilter>();
         combinedMeshFilter.sharedMesh = combinedMesh;
-        
-        foreach (GameObject cube in cubes) {
-            Destroy(cube);
+        combinedMeshObj.AddComponent<MeshRenderer>();
+    
+        foreach (Transform cubeTransform in cubeTransforms) {
+            Destroy(cubeTransform.gameObject);
         }
-
-        cubes = new HashSet<GameObject>();
     }
+    
 
 
 }

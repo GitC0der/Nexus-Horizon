@@ -118,7 +118,7 @@ namespace Prepping
                 //}
             }
         }
-        
+
         /// <summary>
         ///     Create a dictionary that maps each neighboring block to their location relative to the given position.
         ///     For example, if the block on top of the given position is a Building, it will be mapped this way:

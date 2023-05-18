@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DefaultNamespace;
 using Prepping;
 using Random = UnityEngine.Random;
 
@@ -55,7 +56,7 @@ namespace Painting
                         current = (Random.value < 0.7) ? Slot.Window : Slot.Wall;
                     }
 
-                    if (!_surface.GetBorders(_blockBox).ContainsKey(pos)) {
+                    if (!_surface.IsInBorders(pos)) {
                         _currentOutput.Add(pos, current);
 
                     }
@@ -64,14 +65,25 @@ namespace Painting
         }
 
         private void DrawDoors() {
-            var borders = _surface.GetBorders(_blockBox);
-            List<Position3> groundPos = new List<Position3>();
+            /*
+            Optional<Border> groundBorder = _surface.GetBorder(BorderType.Ground);
+            HashSet<Position3> groundPos = (groundBorder.Exist()) 
+                ? groundBorder.Get().GetPositions().ToHashSet()
+                : new HashSet<Position3>();
+            */
+
+            Border groundBorder = _surface.GetBorder(BorderType.Ground);
+            HashSet<Position3> groundPos = groundBorder?.GetPositions().ToHashSet() ?? new HashSet<Position3>();
+
+            // TODO: UNDO if failure
+            /*
             foreach (var (position, borderType) in borders) {
                 if (borderType == BorderType.Ground) groundPos.Add(position);
             }
+            */
 
             if (Random.value < 0.3 && groundPos.Count > 2) {
-                Position3 doorPos = groundPos[(int)Math.Round((groundPos.Count - 2) * Random.value) + 1];
+                Position3 doorPos = groundPos.ToList()[(int)Math.Round((groundPos.Count - 2) * Random.value) + 1];
                 _currentOutput[doorPos] = Slot.Door;
                 _currentOutput[doorPos + Position3.up] = Slot.Door;
             }
