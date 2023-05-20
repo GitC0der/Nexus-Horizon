@@ -16,8 +16,8 @@ using Random = UnityEngine.Random;
 public class GameManager : MonoBehaviour {
 
     public bool highGraphicsMode;
-    public bool useProps;
-    
+    public GraphicsLevel graphicsLevel;
+
     public GameObject buildingPrefab;
     public GameObject parkPrefab;
     public GameObject trainPrefab;
@@ -26,6 +26,11 @@ public class GameManager : MonoBehaviour {
     public GameObject plazaPrefab;
     public GameObject utilitiesPrefab;
     public GameObject lightPrefab;
+
+    public enum GraphicsLevel
+    {
+        Low, Medium, High, Ultra
+    }
 
     private PropManager _propManager;
     
@@ -48,10 +53,6 @@ public class GameManager : MonoBehaviour {
     private HashSet<GameObject> cubes = new HashSet<GameObject>();
     
     
-    // DEBUGGING
-    private int blockCount = 0;
-
-    private string lastPrefabName = "";
 
     private GameObject PrefabFrom(Block block) {
         GameObject prefab;
@@ -66,11 +67,15 @@ public class GameManager : MonoBehaviour {
     // Use this for initialisation
     void Start () {
         blockbox = new Blockbox(50, 80, 50);
-
+        
         _propManager = GetComponentInChildren<PropManager>();
         _propManager.Initialize(blockbox);
         
-        prefabs = new Dictionary<Block, GameObject>() {
+        // Stored there for easy access in any
+        ServiceLocator.RegisterService(this);
+        ServiceLocator.RegisterService(_propManager);
+        
+        prefabs = new Dictionary<Block, GameObject> {
             { Block.Building, buildingPrefab },
             { Block.Park, parkPrefab },
             { Block.Void, voidPrefab },
@@ -158,6 +163,7 @@ public class GameManager : MonoBehaviour {
         GenerateAllFloors(surfaces);
         
         //GenerateAllWallBorders(surfaces);
+        
         //GenerateFloorBorders(BorderType.None, surfaces);
         
         OptimizeBlockBox();
@@ -300,7 +306,7 @@ public class GameManager : MonoBehaviour {
     private void GenerateAllFloors(HashSet<Surface> allSurfaces) {
         foreach (Surface surface in allSurfaces) {
             if (surface.IsFloor() && surface.GetBlocks().Count > 2) {
-                FloorPainter fp = new FloorPainter(surface, blockbox, _propManager, highGraphicsMode);
+                FloorPainter fp = new FloorPainter(surface, blockbox, _propManager,highGraphicsMode);
                 if (highGraphicsMode) {
                     var lights = fp.GetLights();
                     foreach (var (pos, light) in lights) {
@@ -403,7 +409,7 @@ public class GameManager : MonoBehaviour {
             for (int y = 0; y < blockbox.sizeY; y++) {
                 for (int z = 0; z < blockbox.sizeX; z++) {
                     Position3 currentPos = new(x, y, z);
-                    Dictionary<Position3, Block> neighbors = blockbox.GetNeighbors(currentPos);
+                    Dictionary<Position3, Block> neighbors = blockbox.GetRelativeNeighbors(currentPos);
                     
                     // Checking all blocks that are null and have at least one neighbor building
                     if (blockbox.BlockAt(currentPos) == Block.Void && neighbors.ContainsValue(Block.Building)) {
@@ -435,7 +441,7 @@ public class GameManager : MonoBehaviour {
             Position3 bfsPosition = queue.Dequeue();
             currentsurface.Add(bfsPosition);
 
-            var bfsNeighbors = blockbox.GetNeighbors(bfsPosition);
+            var bfsNeighbors = blockbox.GetRelativeNeighbors(bfsPosition);
 
             // TODO: Fix roof not found because of adjacency with floor
             // Solution: store which of the two block is building beforehand, and add in queue only if the same block is building
@@ -568,8 +574,6 @@ public class GameManager : MonoBehaviour {
             //cubes.Add(obj);
         }
         
-        ++blockCount;
-
         if (block != Block.Void) {
             isPlacingOne = false;
         } else {
@@ -583,7 +587,7 @@ public class GameManager : MonoBehaviour {
         for (int x = 0; x < blockbox.sizeX; x++) {
             for (int y = 0; y < blockbox.sizeY; y++) {
                 for (int z = 0; z < blockbox.sizeZ; z++) {
-                    var neighbors = blockbox.GetNeighbors(new Position3(x, y, z));
+                    var neighbors = blockbox.GetRelativeNeighbors(new Position3(x, y, z));
                     if (neighbors.Count() == 6 && neighbors.Count(pair => pair.Value == Block.Building) == 6) {
                         willBeRemoved.Add(new Position3(x, y, z));
                     }

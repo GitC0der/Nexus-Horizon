@@ -24,7 +24,9 @@ namespace Painting
             
             // TODO: Adapt this
             DrawWindows();
-            DrawDoors();
+            
+            
+            if (surface.GetHeight() > 2) DrawDoors();
 
         }
 
@@ -82,11 +84,28 @@ namespace Painting
             }
             */
 
-            if (Random.value < 0.3 && groundPos.Count > 2) {
+            if (groundPos.Count > 2) {
                 Position3 doorPos = groundPos.ToList()[(int)Math.Round((groundPos.Count - 2) * Random.value) + 1];
-                _currentOutput[doorPos] = Slot.Door;
-                _currentOutput[doorPos + Position3.up] = Slot.Door;
+                if (IsRoomForDoor(doorPos) && Random.value < 0.8) {
+                    _currentOutput[doorPos] = Slot.Door;
+                    _currentOutput[doorPos + Position3.up] = Slot.Door;
+                    _blockBox.SetDoor(new[] { doorPos, doorPos + Position3.up });
+                }
             }
+        }
+
+        private bool IsRoomForDoor(Position3 pos) {
+            for (int i = 0; i < 3; i++) {
+                for (int y = 0; y < 3; y++) {
+                    Position3 newPos = pos + (i-1) * _surface.GetWidthDirection() + y*Position3.up;
+                    if (!_blockBox.IsStrictlyInside(newPos) || _blockBox.BlockAt(newPos) == Block.Void) return false;
+                    if (_blockBox.BlockAt(newPos + _surface.GetNormal()) != Block.Void) return false;
+                }
+            }
+
+            //if (!_blockBox.IsStrictlyInside(pos + 2 * _surface.GetNormal()) || _blockBox.BlockAt(pos + 2 * _surface.GetNormal()) == Block.Void) return false;
+
+            return true;
         }
         
         public bool IsDone() => _isDone;

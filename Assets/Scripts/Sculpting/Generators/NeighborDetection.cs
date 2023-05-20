@@ -57,7 +57,7 @@ namespace Prepping.Generators
                 //return prevBlock;
             //}
             
-            Dictionary<Position3, Block> neighbors = blockbox.GetNeighbors(position);
+            Dictionary<Position3, Block> neighbors = blockbox.GetRelativeNeighbors(position);
             Block block = BlockSelection.PickBlock(neighbors, position);
             blockbox.TrySetBlock(block, position);
             //if (block == Block.NULL) {

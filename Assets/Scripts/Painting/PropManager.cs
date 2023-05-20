@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using JetBrains.Annotations;
 using Prepping;
 using UnityEngine;
 
@@ -8,11 +10,14 @@ namespace Painting
     {
         public GameObject lampPrefab;
         public GameObject railingPrefab;
+        public GameObject tableSetPrefab;
         public GameObject propHolder;
+        public GameObject longACPrefab;
         
-        public PropPrefab Lamp() => new PropPrefab(lampPrefab, 0.3, 3.4, 1);
-
-        public PropPrefab Railing() => new PropPrefab(railingPrefab, 1.6, 1.2, 0.3);
+        public PropPrefab Lamp() => new PropPrefab(lampPrefab, 1, 4, 1, true);
+        public PropPrefab Railing() => new PropPrefab(railingPrefab, 1, 1, 1, false);
+        public PropPrefab TableSet() => new PropPrefab(tableSetPrefab, 2, 2, 2, true);
+        public PropPrefab LongAirConditioning() => new(longACPrefab, 4, 2, 2, true);
 
         private PropBox _propBox;
 
@@ -24,8 +29,9 @@ namespace Painting
             _propBox = new PropBox(blockbox, propHolder);
         }
 
-        public GameObject Instantiate(PropPrefab prefab, Vector3 position, Vector3 facing) {
-            return _propBox.AddProp(prefab, position, facing);
+        [CanBeNull]
+        public GameObject Instantiate(PropPrefab prefab, Position3 anchorPos, Vector3 position, Vector3 facing, HashSet<Position3> surfaceBlocks) {
+            return _propBox.AddProp(prefab, anchorPos, position, facing, surfaceBlocks);
         }
 
         public void RemoveAllProps() {
@@ -37,17 +43,24 @@ namespace Painting
     public class PropPrefab
     {
         private GameObject _prefab;
-        private double _sizeX;
-        private double _sizeY;
-        private double _sizeZ;
+        private bool _isClearanceHard;
+        private int _sizeX;
+        private int _sizeY;
+        private int _sizeZ;
         
-        public PropPrefab(GameObject prefab, double sizeX, double sizeY, double sizeZ) {
+        public PropPrefab(GameObject prefab, int sizeX, int sizeY, int sizeZ, bool isClearanceHard) {
             _prefab = prefab;
+            _sizeX = sizeX;
+            _sizeY = sizeY;
+            _sizeZ = sizeZ;
+            _isClearanceHard = isClearanceHard;
         }
 
-        public double SizeX() => _sizeX;
-        public double SizeY() => _sizeY;
-        public double SizeZ() => _sizeZ;
+        public int SizeX() => _sizeX;
+        public int SizeY() => _sizeY;
+        public int SizeZ() => _sizeZ;
+
+        public bool IsClearanceHard() => _isClearanceHard;
         public GameObject GameObject() => _prefab;
 
     }

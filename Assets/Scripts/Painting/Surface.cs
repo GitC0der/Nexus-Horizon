@@ -13,6 +13,7 @@ namespace Painting
     {
         // TODO: Use Position instead of Position3
         private HashSet<Position3> _blocks;
+        private HashSet<Position3> _borderBlocks;
         private Orientation _orientation;
         private ConstantAxis _constantAxis;
         private Position3 _normal;
@@ -27,12 +28,12 @@ namespace Painting
         private Dictionary<BorderType, Border> _borders;
         private Blockbox _blockbox;
 
-
         public Surface(HashSet<Position3> blocks, Position3 normal, Blockbox blockbox) {
             if (blocks.Count <= 1) throw new ArgumentException("Surface must have at least two blocks!");
             _blocks = blocks;
             _normal = normal;
             _blockbox = blockbox;
+            _borderBlocks = new HashSet<Position3>();
             if (normal == new Position3(0, 1, 0)) {
                 _orientation = Orientation.Roof;
                 _constantAxis = ConstantAxis.Y;
@@ -142,9 +143,6 @@ namespace Painting
                 }
 
                 if (!doAdd) return;
-                foreach (var (_, border) in _borders) {
-                    if (border.Contains(prevPos)) return;
-                }
 
                 if (!_borders.ContainsKey(borderType)) _borders[borderType] = new Border(borderType);
                 _borders[borderType].Add(prevPos, prevPos.To(neighborPos));
@@ -171,6 +169,22 @@ namespace Painting
 
             return _borders;
         }
+        
+        // TODO: Move to new Floor class eventually
+
+        public HashSet<Position3> GetBorderPositions() {
+            if (_borderBlocks.Count != 0) return _borderBlocks;
+
+            foreach (var (_, border) in GetBorders()) {
+                foreach (Position3 pos in border.GetPositions()) {
+                    _borderBlocks.Add(pos);
+                }
+            }
+
+            return _borderBlocks;
+        }
+
+        public Position3 GetNormal() => _normal;
         
         /*
         public Dictionary<Position3, BorderType> GetBorders(Blockbox blockbox) {
@@ -246,11 +260,15 @@ namespace Painting
 
         public bool IsFloor() => _constantAxis == ConstantAxis.Y && _normal == Position3.up;
 
+        public Position3 GetWidthDirection() => _widthAxis / GetWidth();
+
+        public Position3 GetHeightDirection() => _heightAxis / GetHeight();
+
     }
 
     public class Border
     {
-        private Dictionary<Position3, Vector3> _blocks = new();
+        private Dictionary<Position3, HashSet<Vector3>> _blocks = new();
         private BorderType _borderType;
 
         public Border(BorderType borderType) {
@@ -258,12 +276,17 @@ namespace Painting
         }
 
         public void Add(Position3 position, Vector3 facing) {
-            _blocks[position] = facing;
+            if (_blocks.ContainsKey(position)) {
+                _blocks[position].Add(facing);
+            }
+            else {
+                _blocks[position] = new HashSet<Vector3> { facing };
+            }
         }
 
         public bool Contains(Position3 block) => _blocks.ContainsKey(block);
 
-        public Dictionary<Position3, Vector3> GetDirections() => _blocks;
+        public Dictionary<Position3, HashSet<Vector3>> GetDirections() => _blocks;
         public HashSet<Position3> GetPositions() => _blocks.Keys.ToHashSet();
     }
     

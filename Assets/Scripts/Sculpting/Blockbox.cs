@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.ComponentModel.Design;
 using System.Linq;
 using DefaultNamespace;
+using Painting;
+using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Prepping
@@ -17,7 +19,8 @@ namespace Prepping
         public readonly int sizeZ;
 
         private Block[][][] blocks;
-        
+        private HashSet<Position3> _doorPositions;
+
         /// <summary>
         ///     Create a blockbox
         /// </summary>
@@ -28,6 +31,7 @@ namespace Prepping
             this.sizeX = sizeX;
             this.sizeY = sizeY;
             this.sizeZ = sizeZ;
+            _doorPositions = new HashSet<Position3>();
             
             EmptyBox();
         }
@@ -47,6 +51,22 @@ namespace Prepping
                     }
                 } 
             }
+        }
+
+        public void SetDoor(Position3[] positions) {
+            _doorPositions.AddRange(positions);
+        }
+
+        public HashSet<Position3> GetDoorsLeadingTo(IEnumerable<Position3> surfaceBorder) {
+            HashSet<Position3> doorsFound = new HashSet<Position3>();
+            foreach (Position3 pos in surfaceBorder) {
+                foreach (var (neighborPos, _) in GetRelativeNeighbors(pos)) {
+                    var newPos = pos + neighborPos;
+                    if (newPos.y == pos.y && _doorPositions.Contains(newPos + Position3.up)) doorsFound.Add(newPos);
+                }
+            }
+
+            return doorsFound;
         }
 
         /// <summary>
@@ -126,7 +146,7 @@ namespace Prepping
         /// </summary>
         /// <param name="position"></param>
         /// <returns></returns>
-        public Dictionary<Position3, Block> GetNeighbors(Position3 position) {
+        public Dictionary<Position3, Block> GetRelativeNeighbors(Position3 position) {
             Dictionary<Position3, Block> neighbors = new Dictionary<Position3, Block>();
 
             Check(neighbors, position, new Position3(1, 0, 0));
