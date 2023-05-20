@@ -16,6 +16,7 @@ using Random = UnityEngine.Random;
 public class GameManager : MonoBehaviour {
 
     public bool highGraphicsMode;
+    public bool debugMode;
     public GraphicsLevel graphicsLevel;
 
     public GameObject buildingPrefab;

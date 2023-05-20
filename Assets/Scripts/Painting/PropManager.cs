@@ -13,12 +13,16 @@ namespace Painting
         public GameObject tableSetPrefab;
         public GameObject propHolder;
         public GameObject longACPrefab;
+        public GameObject coolingUnit;
+        public GameObject couch1;
         
-        public PropPrefab Lamp() => new PropPrefab(lampPrefab, 1, 4, 1, true);
-        public PropPrefab Railing() => new PropPrefab(railingPrefab, 1, 1, 1, false);
-        public PropPrefab TableSet() => new PropPrefab(tableSetPrefab, 2, 2, 2, true);
-        public PropPrefab LongAirConditioning() => new(longACPrefab, 4, 2, 2, true);
-
+        public PropPrefab Lamp() => new (lampPrefab, new Vector3(0,2,0), 1, 4, 1, true);
+        public PropPrefab Railing() => new (railingPrefab, new Vector3(-1,-1,-1), 1, 1, 1, false);
+        public PropPrefab TableSet() => new (tableSetPrefab, new Vector3(0.5f,0.5f,-0.5f), 2, 2, 2, true);
+        public PropPrefab LongAirConditioning() => new(longACPrefab, new Vector3(-0.53f,0.33f,-0.65f),3, 2, 1, true);
+        public PropPrefab LargeCoolingUnit() => new(coolingUnit, new Vector3(1, 0.45f, -1), 3, 2, 3, true);
+        public PropPrefab Couch1() => new(couch1, new Vector3(-0.4f, 0.5f, -2.2f), 2, 2, 3, true);
+        
         private PropBox _propBox;
 
         void Start() {
@@ -47,13 +51,15 @@ namespace Painting
         private int _sizeX;
         private int _sizeY;
         private int _sizeZ;
+        private Vector3 _offset;
         
-        public PropPrefab(GameObject prefab, int sizeX, int sizeY, int sizeZ, bool isClearanceHard) {
+        public PropPrefab(GameObject prefab, Vector3 offset, int sizeX, int sizeY, int sizeZ, bool isClearanceHard) {
             _prefab = prefab;
             _sizeX = sizeX;
             _sizeY = sizeY;
             _sizeZ = sizeZ;
             _isClearanceHard = isClearanceHard;
+            _offset = offset;
         }
 
         public int SizeX() => _sizeX;
@@ -61,6 +67,7 @@ namespace Painting
         public int SizeZ() => _sizeZ;
 
         public bool IsClearanceHard() => _isClearanceHard;
+        public Vector3 Offset() => _offset;
         public GameObject GameObject() => _prefab;
 
     }

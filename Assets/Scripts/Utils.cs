@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Prepping;
+using UnityEngine;
 
 public static class Utils
 {
@@ -30,5 +32,20 @@ public static class Utils
         }
         builder.Append($"]\n");
         return builder.ToString();
-    }  
+    }
+
+    /// <summary>
+    ///     Rotates the given vector by 90 degrees to the left
+    /// </summary>
+    /// <param name="vector"></param>
+    /// <returns></returns>
+    public static Vector3 RotatedLeft(this Vector3 vector) {
+        return new Vector3(-vector.z, vector.y, vector.x);
+    }
+
+    public static Vector3 RotateRight(this Vector3 vector) {
+        return new Vector3(-vector.z, vector.y, -vector.x);
+    }
+
+    public static Position3 AsPosition3(this Vector3 vector) => new Position3(vector);
 }

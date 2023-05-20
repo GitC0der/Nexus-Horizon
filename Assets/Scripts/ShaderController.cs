@@ -27,13 +27,13 @@ namespace DefaultNamespace
             // Disable the sun source
             sunSource.SetActive(false);
             
-            //RenderSettings.fogDensity = 0.05f;
-            RenderSettings.ambientIntensity = 0.2f;
+            //RenderSettings.ambientIntensity = 0.2f;
+            RenderSettings.ambientIntensity = 0.55f;
             
             GameObject directionalLight = GameObject.Find("Directional Light");
             if (directionalLight != null)
             {
-                directionalLight.SetActive(false);
+                //directionalLight.SetActive(false);
             }
 
             //skyboxMaterial.color = new Color(0, 0, 0, 1);

@@ -29,9 +29,12 @@ namespace Painting
                 if (prefab.IsClearanceHard()) _occupiedBlocks.AddRange(blocksIfPossible);
                 
                 //TODO: DEBUG
-                foreach (Position3 pos in _occupiedBlocks) {
-                    _blockbox.ForceSetBlock(Block.Utilities, pos);
-                }
+                if (ServiceLocator.GetService<GameManager>().debugMode)
+                    foreach (Position3 pos in blocksIfPossible) {
+                        if (pos.y == anchorPos.y + 1) _blockbox.ForceSetBlock(Block.Plaza, pos - Position3.up);
+                        _blockbox.ForceSetBlock(Block.Utilities, anchorPos);
+                        _blockbox.ForceSetBlock(Block.Walkway, anchorPos + facing.AsPosition3());
+                    }
                 
                 return prop.GetGameObject();
             }

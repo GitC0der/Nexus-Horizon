@@ -262,7 +262,11 @@ namespace Painting
 
         public Position3 GetWidthDirection() => _widthAxis / GetWidth();
 
+        public Vector3 GetWidthDirectionV() => GetWidthDirection().AsVector3();
+
         public Position3 GetHeightDirection() => _heightAxis / GetHeight();
+
+        public Vector3 GetHeightDirectionV() => GetHeightDirection().AsVector3();
 
     }
 

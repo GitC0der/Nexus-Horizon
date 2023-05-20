@@ -42,8 +42,10 @@ namespace Painting
                     PlaceRailing();
                     PlaceLampPosts();
                     PlaceTables();
+                    PlaceCouch1();
                     break;
                 case FloorTheme.Utilities:
+                    PlaceCoolingUnit();
                     PlaceLongAC();
                     break;
                 default:
@@ -51,10 +53,24 @@ namespace Painting
             }
             
         }
-
+        
         private FloorTheme ChooseTheme() {
             bool hasDoors = _blockbox.GetDoorsLeadingTo(_surface.GetBorderPositions()).Count > 0;
             return hasDoors ? FloorTheme.Dining : FloorTheme.Utilities;
+        }
+
+        private void PlaceCouch1() {
+            switch (_surface.GetBlocks().Count) {
+                case < 40:
+                    Place(_propManager.Couch1(), 1, 5);
+                    break;
+                case < 80:
+                    Place(_propManager.Couch1(), 2, 10);
+                    break;
+                default:
+                    Place(_propManager.Couch1(), 3, 15);
+                    break;
+            }
         }
 
         private void PlaceRailing() {
@@ -77,6 +93,7 @@ namespace Painting
                     var pos = border.GetPositions().ToList()[Random.Range(0, border.GetPositions().Count)];
                     HashSet<Vector3> listFacing = border.GetDirections()[pos];
                     foreach (Vector3 facing in listFacing) {
+                        Vector3 propPos = ActualPos(pos.AsVector3(), _propManager.Lamp().Offset(), facing);
                         var gameObject = _propManager.Instantiate(_propManager.Lamp(), pos, pos.AsVector3() + 2f*Vector3.up, facing, _surface.GetBlocks());
                         if (!_enableLights && gameObject != null) gameObject.GetComponentInChildren<UnityEngine.Light>().enabled = false;
                     }
@@ -85,6 +102,23 @@ namespace Painting
             }
         }
 
+        private int Place(PropPrefab prefab, int countTarget, int maxIterations) {
+            int placedCount = 0;
+            int iterationsCount = 0;
+            do {
+                ++iterationsCount;
+                Position3 position = _surface.GetBlocks().ToList()[Random.Range(0, _surface.GetBlocks().Count)];
+                Vector3 displ = 0.5f * _surface.GetWidthDirection().AsVector3() + 0.5f * _surface.GetHeightDirection().AsVector3() + 0.5f*Vector3.up;
+                Vector3 facing = RandomFloorOrientation();
+                Vector3 newPos = ActualPos(position.AsVector3(), prefab.Offset(), facing);
+                var gameObject = _propManager.Instantiate(prefab, position, newPos, facing, _surface.GetBlocks());
+                if (gameObject != null) ++placedCount;
+                
+            } while (placedCount < countTarget && iterationsCount < maxIterations);
+
+            return placedCount;
+        }
+        
         private void PlaceTables() {
             if (_surface.GetBlocks().Count > 35) {
                 int placedCount = 0;
@@ -94,12 +128,31 @@ namespace Painting
                     Position3 position = _surface.GetBlocks().ToList()[Random.Range(0, _surface.GetBlocks().Count)];
                     if (!_surface.IsInBorders(position)) {
                         Vector3 displ = 0.5f * _surface.GetWidthDirection().AsVector3() + 0.5f * _surface.GetHeightDirection().AsVector3() + 0.5f*Vector3.up;
-                        var gameObject = _propManager.Instantiate(_propManager.TableSet(), position, position.AsVector3() + displ,
-                            Vector3.back, _surface.GetBlocks());
+                        Vector3 facing = RandomFloorOrientation();
+                        Vector3 newPos = ActualPos(position.AsVector3(), _propManager.TableSet().Offset(), facing);
+                        //var gameObject = _propManager.Instantiate(_propManager.TableSet(), position, newPos, facing, _surface.GetBlocks());
+                        var gameObject = _propManager.Instantiate(_propManager.TableSet(), position, newPos, facing,
+                            _surface.GetBlocks());
                         if (gameObject != null) ++placedCount;
                     }
 
                 } while (placedCount < 3 && iterationsCount < 20);
+            }
+        }
+
+        private void PlaceCoolingUnit() {
+            switch (_surface.GetBlocks().Count) {
+                case < 20:
+                    break;
+                case < 35:
+                    Place(_propManager.LargeCoolingUnit(), 1, 10);
+                    break;
+                case < 90:
+                    Place(_propManager.LargeCoolingUnit(), 2, 20);
+                    break;
+                default:
+                    Place(_propManager.LargeCoolingUnit(), 3, 20);
+                    break;
             }
         }
 
@@ -110,15 +163,22 @@ namespace Painting
                     ++iterationsCount;
                     Position3 position = _surface.GetBlocks().ToList()[Random.Range(0, _surface.GetBlocks().Count)];
                     if (!_surface.IsInBorders(position)) {
-                        Vector3 displ = Vector3.up;
-                        var gameObject = _propManager.Instantiate(_propManager.LongAirConditioning(), position,
-                            position.AsVector3() + displ, RandomFloorOrientation(), _surface.GetBlocks());
+                        Vector3 facing = RandomFloorOrientation();
+                        Vector3 propPos = ActualPos(position.AsVector3(), _propManager.LongAirConditioning().Offset(), facing);
+                        //Vector3 displ = 0.33f * Vector3.up - 0.65f*facing - 0.53f*facing.RotatedLeft();
+                        //var gameObject = _propManager.Instantiate(_propManager.LongAirConditioning(), position, position.AsVector3() + displ, facing, _surface.GetBlocks());
+                        var gameObject = _propManager.Instantiate(_propManager.LongAirConditioning(), position, propPos,
+                            facing, _surface.GetBlocks());
                         if (gameObject != null) {
                             break;
                         }
                     }
                 } while (iterationsCount < 20);
             }
+        }
+
+        private Vector3 ActualPos(Vector3 pos, Vector3 offset, Vector3 facing) {
+            return pos + offset.x * facing.RotatedLeft() + offset.y * Vector3.up + offset.z * facing;
         }
 
         private Vector3 RandomFloorOrientation() {
