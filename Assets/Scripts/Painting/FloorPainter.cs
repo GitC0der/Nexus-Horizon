@@ -43,8 +43,10 @@ namespace Painting
                     PlaceLampPosts();
                     PlaceTables();
                     PlaceCouch1();
+                    PlacePlants();
                     break;
                 case FloorTheme.Utilities:
+                    PlaceWaterTowers();
                     PlaceCoolingUnit();
                     PlaceLongAC();
                     break;
@@ -59,6 +61,20 @@ namespace Painting
             return hasDoors ? FloorTheme.Dining : FloorTheme.Utilities;
         }
 
+        private void PlacePlants() {
+            switch (_surface.GetBlocks().Count) {
+                case < 30:
+                    Place(_propManager.Plant(), 1, 10);
+                    break;
+                case < 75:
+                    Place(_propManager.Plant(), 2, 10);
+                    break;
+                default:
+                    Place(_propManager.Plant(), 3, 10);
+                    break;
+            }
+        }
+        
         private void PlaceCouch1() {
             switch (_surface.GetBlocks().Count) {
                 case < 40:
@@ -83,6 +99,12 @@ namespace Painting
                         _propManager.Instantiate(_propManager.Railing(), position, position.AsVector3() + displ, facing, _surface.GetBlocks());
                     }
                 }
+            }
+        }
+
+        private void PlaceWaterTowers() {
+            if (100 * Random.value < 30) {
+                Place(_propManager.WaterTower(), 1, 15);
             }
         }
 
