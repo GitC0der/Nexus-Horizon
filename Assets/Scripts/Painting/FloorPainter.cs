@@ -44,6 +44,7 @@ namespace Painting
                     PlaceTables();
                     PlaceCouch1();
                     PlacePlants();
+                    PlaceWallLamps();
                     break;
                 case FloorTheme.Utilities:
                     PlaceWaterTowers();
@@ -61,6 +62,38 @@ namespace Painting
             return hasDoors ? FloorTheme.Dining : FloorTheme.Utilities;
         }
 
+        private void PlaceWallLamps() {
+            Dictionary<Position3, Position3> facings = new();
+            foreach (Position3 pos in _surface.GetBorderPositions()) {
+                var neighbors = _blockbox.GetRelativeNeighbors(pos + 2 * Position3.up);
+                foreach (var (relativePos, block) in neighbors) {
+                    if (block == Block.Building) {
+                        Position3 facing = relativePos;
+                        if (!facings.ContainsKey(pos)) facings.Add(pos, facing);
+                    }
+                }
+            }
+
+            if (facings.Count < 5) return;
+
+            int target = (int)Math.Round(facings.Count / 6.0);
+            int placedCount = 0;
+            int iterationsCount = 0;
+            do {
+                ++iterationsCount;
+                Position3 position = facings.Keys.ToArray()[Random.Range(0, facings.Count)];
+                Vector3 facing = facings[position].AsVector3();
+                PropPrefab prefab = _propManager.WallLamp();
+                Vector3 newPos = ActualPos(position.AsVector3(), prefab.Offset(), facing);
+                var gameObject = _propManager.Instantiate(prefab, position, newPos, facing, _surface.GetBlocks());
+                if (gameObject != null) {
+                    if (!_enableLights) gameObject.GetComponentInChildren<UnityEngine.Light>().enabled = false;
+                    ++placedCount;
+                }
+            } while (placedCount < target && iterationsCount < 20);
+
+        }
+        
         private void PlacePlants() {
             switch (_surface.GetBlocks().Count) {
                 case < 30:

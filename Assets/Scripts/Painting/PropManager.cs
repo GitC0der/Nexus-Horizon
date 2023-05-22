@@ -17,6 +17,7 @@ namespace Painting
         public GameObject couch1;
         public GameObject waterTower;
         public GameObject plant;
+        public GameObject wallLamp;
         
         public PropPrefab Lamp() => new (lampPrefab, new Vector3(0,2,0), 1, 4, 1, true);
         public PropPrefab Railing() => new (railingPrefab, new Vector3(-1,-1,-1), 1, 1, 1, false);
@@ -26,6 +27,7 @@ namespace Painting
         public PropPrefab Couch1() => new(couch1, new Vector3(-0.4f, 0.5f, -2.2f), 2, 2, 3, true);
         public PropPrefab WaterTower() => new(waterTower, new Vector3(1,3,0.3f),3,5,3, true);
         public PropPrefab Plant() => new(plant, new Vector3(-0.3f, 0.35f, -0.1f), 1, 2, 1, true);
+        public PropPrefab WallLamp() => new(wallLamp, new Vector3(0, 2, +0.5f), 1, 1, 1, false);
         
         private PropBox _propBox;
 

@@ -48,4 +48,5 @@ public static class Utils
     }
 
     public static Position3 AsPosition3(this Vector3 vector) => new Position3(vector);
+    
 }

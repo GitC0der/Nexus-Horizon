@@ -16,6 +16,7 @@ using Random = UnityEngine.Random;
 public class GameManager : MonoBehaviour {
 
     public bool highGraphicsMode;
+    public bool useLights;
     public bool debugMode;
     public GraphicsLevel graphicsLevel;
 
@@ -307,7 +308,7 @@ public class GameManager : MonoBehaviour {
     private void GenerateAllFloors(HashSet<Surface> allSurfaces) {
         foreach (Surface surface in allSurfaces) {
             if (surface.IsFloor() && surface.GetBlocks().Count > 2) {
-                FloorPainter fp = new FloorPainter(surface, blockbox, _propManager,highGraphicsMode);
+                FloorPainter fp = new FloorPainter(surface, blockbox, _propManager, useLights);
                 if (highGraphicsMode) {
                     var lights = fp.GetLights();
                     foreach (var (pos, light) in lights) {
