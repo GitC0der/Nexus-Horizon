@@ -155,7 +155,7 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        //GenerateOutsideTestsurface();
+        GenerateOutsideTestsurface();
         
         //var surfaces = FindAllsurfacesTest();
         var surfaces = Findsurfaces();
