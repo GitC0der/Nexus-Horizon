@@ -13,7 +13,7 @@ namespace Painting
     {
         // TODO: Use Position instead of Position3
         private HashSet<Position3> _blocks;
-        private HashSet<Position3> _borderBlocks;
+        [CanBeNull] private HashSet<Position3> _borderPositions;
         private Orientation _orientation;
         private ConstantAxis _constantAxis;
         private Position3 _normal;
@@ -25,7 +25,7 @@ namespace Painting
         private Position3 _minCorner3;
         private Position3 _maxCorner3;
         //private Dictionary<Position3, BorderType> _border;
-        private Dictionary<BorderType, Border> _borders;
+        [CanBeNull] private Dictionary<BorderType, Border> _borders;
         private Blockbox _blockbox;
 
         public Surface(HashSet<Position3> blocks, Position3 normal, Blockbox blockbox) {
@@ -33,7 +33,6 @@ namespace Painting
             _blocks = blocks;
             _normal = normal;
             _blockbox = blockbox;
-            _borderBlocks = new HashSet<Position3>();
             if (normal == new Position3(0, 1, 0)) {
                 _orientation = Orientation.Roof;
                 _constantAxis = ConstantAxis.Y;
@@ -98,16 +97,15 @@ namespace Painting
                 _maxCorner3 = new Position3(_fixedCoordinate, yMax, zMax);
             }
 
-            //_border = new Dictionary<Position3, BorderType>();
-            _borders = new Dictionary<BorderType, Border>();
         }
 
         public bool IsInBorders(Position3 position) {
-            foreach (var (_, border) in _borders) {
+            foreach (var (_, border) in GetBorders()) {
                 if (border.Contains(position)) return true;
             }
 
             return false;
+            //return GetBorderPositions().Contains(position);
         }
 
         //public bool HasBorder(BorderType type) => GetBorder(type).Exist();
@@ -115,9 +113,8 @@ namespace Painting
 
         [CanBeNull]
         public Border GetBorder(BorderType borderType) {
-            if (_borders.Count == 0) GetBorders();
-            if (!_borders.ContainsKey(borderType)) return null;
-            return _borders[borderType];
+            if (!GetBorders().ContainsKey(borderType)) return null;
+            return GetBorders()[borderType];
         }
         
         /*
@@ -129,15 +126,18 @@ namespace Painting
         */
         
         public Dictionary<BorderType, Border> GetBorders() {
-            if (_borders.Count != 0) return _borders;
+            if (_borders != null) return _borders;
 
-            Action<Position3, Position3, BorderType, BorderType> AddToBorder = (neighborPos, prevPos, whenVoid, whenOther) => {
+            _borders = new Dictionary<BorderType, Border>();
+
+            void AddToBorder(Position3 neighborPos, Position3 prevPos, BorderType whenVoid, BorderType whenOther) {
                 BorderType borderType = BorderType.None;
                 bool doAdd = false;
                 if (_blockbox.BlockAt(neighborPos) == Block.Void) {
                     borderType = whenVoid;
                     doAdd = true;
-                } else if (!_blocks.Contains(neighborPos) && _blockbox.BlockAt(neighborPos + _normal) != Block.Void) {
+                }
+                else if (!_blocks.Contains(neighborPos) && _blockbox.BlockAt(neighborPos + _normal) != Block.Void) {
                     borderType = whenOther;
                     doAdd = true;
                 }
@@ -146,7 +146,7 @@ namespace Painting
 
                 if (!_borders.ContainsKey(borderType)) _borders[borderType] = new Border(borderType);
                 _borders[borderType].Add(prevPos, prevPos.To(neighborPos));
-            };
+            }
 
             BorderType belowVoid = IsFacade() ? BorderType.Overhang : BorderType.None;
             BorderType belowOther = IsFacade() ? BorderType.Ground : BorderType.Wall;
@@ -173,15 +173,16 @@ namespace Painting
         // TODO: Move to new Floor class eventually
 
         public HashSet<Position3> GetBorderPositions() {
-            if (_borderBlocks.Count != 0) return _borderBlocks;
+            if (_borderPositions != null) return _borderPositions;
 
+            _borderPositions = new HashSet<Position3>();
             foreach (var (_, border) in GetBorders()) {
                 foreach (Position3 pos in border.GetPositions()) {
-                    _borderBlocks.Add(pos);
+                    _borderPositions.Add(pos);
                 }
             }
 
-            return _borderBlocks;
+            return _borderPositions;
         }
 
         public Position3 GetNormal() => _normal;

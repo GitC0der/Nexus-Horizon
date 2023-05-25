@@ -15,10 +15,11 @@ using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour {
 
-    public bool highGraphicsMode;
+    public bool useShader;
     public bool useLights;
     public bool debugMode;
-    public GraphicsLevel graphicsLevel;
+    public bool isDeterministic;
+    //public GraphicsLevel graphicsLevel;
 
     public GameObject buildingPrefab;
     public GameObject parkPrefab;
@@ -87,10 +88,14 @@ public class GameManager : MonoBehaviour {
             { Block.Plaza, plazaPrefab},
             { Block.Utilities , utilitiesPrefab}
         };
+
+        if (isDeterministic) {
+            Random.InitState(9365);
+        }
         
         isRunning = true;
 
-        if (highGraphicsMode) {
+        if (useShader) {
             GetComponentInChildren<ShaderController>().EnableShader();
         }
         
@@ -155,19 +160,22 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        //GenerateOutsideTestsurface();
+        GenerateOutsideTestsurface();
         
         //var surfaces = FindAllsurfacesTest();
         var surfaces = Findsurfaces();
-        
-        //GenerateSingleRandomsurfaceRoof(surfaces);
-        GenerateAllFacades(surfaces);
+
+        if (true) {
+            GenerateAllFacades(surfaces);
+        } else {
+            GenerateAllWallBorders(surfaces);
+        }
         GenerateAllFloors(surfaces);
         
-        //GenerateAllWallBorders(surfaces);
         
         //GenerateFloorBorders(BorderType.None, surfaces);
-        
+
+
         OptimizeBlockBox();
         
         SpawnBlocks();
@@ -309,7 +317,7 @@ public class GameManager : MonoBehaviour {
         foreach (Surface surface in allSurfaces) {
             if (surface.IsFloor() && surface.GetBlocks().Count > 2) {
                 FloorPainter fp = new FloorPainter(surface, blockbox, _propManager, useLights);
-                if (highGraphicsMode) {
+                if (useShader) {
                     var lights = fp.GetLights();
                     foreach (var (pos, light) in lights) {
                         var lightObject = Instantiate(lightPrefab, pos, Quaternion.identity);
@@ -407,9 +415,9 @@ public class GameManager : MonoBehaviour {
         HashSet<Position3> blocksInsurfaces = new();
         
         // Iterating over all blocks
-        for (int x = 0; x < blockbox.sizeX; x++) {
-            for (int y = 0; y < blockbox.sizeY; y++) {
-                for (int z = 0; z < blockbox.sizeX; z++) {
+        for (int x = 0; x < blockbox._sizeX; x++) {
+            for (int y = 0; y < blockbox._sizeY; y++) {
+                for (int z = 0; z < blockbox._sizeX; z++) {
                     Position3 currentPos = new(x, y, z);
                     Dictionary<Position3, Block> neighbors = blockbox.GetRelativeNeighbors(currentPos);
                     
@@ -530,9 +538,16 @@ public class GameManager : MonoBehaviour {
                     case '-':
                         pref = buildingPrefab;
                         break;
+                    case 'X':
+                        pref = parkPrefab;
+                        break;
+                    case 'o' or 'O':
+                        pref = trainPrefab;
+                        break;
                     case '@':
                         // TODO: Remove this
-                        pref = buildingPrefab;
+                        //pref = buildingPrefab;
+                        pref = plazaPrefab;
                         isBalcony = false;
                         break;
                     default:
@@ -551,13 +566,14 @@ public class GameManager : MonoBehaviour {
 
     private void SpawnBlocks() {
         GameObject cubeHolder = GameObject.Find("Cube Holder");
-        for (int x = 0; x < blockbox.sizeX; x++) {
-            for (int y = 0; y < blockbox.sizeY; y++) {
-                for (int z = 0; z < blockbox.sizeZ; z++) {
+        for (int x = 0; x < blockbox._sizeX; x++) {
+            for (int y = 0; y < blockbox._sizeY; y++) {
+                for (int z = 0; z < blockbox._sizeZ; z++) {
                     Position3 blockPosition = new Position3(x, y, z);
                     Block block = blockbox.BlockAt(blockPosition);
-                    if (block != Block.Void) {
-                        GameObject obj = Instantiate(PrefabFrom(block), blockPosition.AsVector3(), Quaternion.identity, cubeHolder.transform);
+                    var shift = blockbox.ShiftAt(blockPosition);
+                    if (shift.Exist() && block != Block.Void) {
+                        GameObject obj = Instantiate(PrefabFrom(block), blockPosition.AsVector3() + shift.Get(), Quaternion.identity, cubeHolder.transform);
                         cubes.Add(obj);
                     }
                 }
@@ -586,9 +602,9 @@ public class GameManager : MonoBehaviour {
 
     private void OptimizeBlockBox() {
         List<Position3> willBeRemoved = new List<Position3>();
-        for (int x = 0; x < blockbox.sizeX; x++) {
-            for (int y = 0; y < blockbox.sizeY; y++) {
-                for (int z = 0; z < blockbox.sizeZ; z++) {
+        for (int x = 0; x < blockbox._sizeX; x++) {
+            for (int y = 0; y < blockbox._sizeY; y++) {
+                for (int z = 0; z < blockbox._sizeZ; z++) {
                     var neighbors = blockbox.GetRelativeNeighbors(new Position3(x, y, z));
                     if (neighbors.Count() == 6 && neighbors.Count(pair => pair.Value == Block.Building) == 6) {
                         willBeRemoved.Add(new Position3(x, y, z));

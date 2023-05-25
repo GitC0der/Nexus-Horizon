@@ -200,6 +200,14 @@ namespace Painting
             //if (!isDone) Debug.Log("WARNING: WFC generator is not done! Result will be incomplete");
             return output.GetTable();
         }
+
+        public char[][] GenerateAndGetOutput() {
+            while (!IsDone()) {
+                GenerateNextSlot();
+            }
+
+            return null;
+        }
         
         /// <summary>
         ///     Generate the next character. The position with the fewest possibilities (i.e the lowest entropy) will

@@ -3,15 +3,19 @@ using System.Collections.Generic;
 using System.Linq;
 using DefaultNamespace;
 using Prepping;
+using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Painting
 {
     public class FacadePainter
     {
+        private const float WINDOW_SHIFT = 0.3f;
+        private const float DOOR_SHIFT = 0.4f;
         private Surface _surface;
         private Blockbox _blockBox;
         private Dictionary<Position3, Slot> _currentOutput;
+        private Dictionary<Position3, Vector3> _currentShifts;
         private bool _isDone;
 
         public FacadePainter(Surface surface, Blockbox blockbox) {
@@ -20,10 +24,11 @@ namespace Painting
             _surface = surface;
             _isDone = false;
             _currentOutput = new Dictionary<Position3, Slot>();
+            _currentShifts = new Dictionary<Position3, Vector3>();
             _blockBox = blockbox;
             
             // TODO: Adapt this
-            DrawWindows();
+            if (_surface.GetWidth() > 3) DrawWindows();
             
             
             if (surface.GetHeight() > 2) DrawDoors();
@@ -44,23 +49,21 @@ namespace Painting
 
                 Position3 pos;
                 Slot prev = (Random.value > 0.5) ? Slot.Window: Slot.Wall;
-                if (_surface.GetConstantAxis() == ConstantAxis.X) {
-                    _currentOutput.Add(new Position3(_surface.GetFixedCoordinate(), y, min + 1), prev);
-                } else {
-                    _currentOutput.Add(new Position3(min + 1, y, _surface.GetFixedCoordinate()), prev);
-                }
-                for (int i = min + 2; i < max; i++) {
+                for (int i = min + 1; i < max; i++) {
                     pos = _surface.GetConstantAxis() == ConstantAxis.X ? new Position3(_surface.GetFixedCoordinate(), y, i): new Position3(i, y, _surface.GetFixedCoordinate());
-                    Slot current;
-                    if (prev == Slot.Wall) {
-                        current = (Random.value < 0.3) ? Slot.Wall: Slot.Window;
-                    } else {
-                        current = (Random.value < 0.7) ? Slot.Window : Slot.Wall;
-                    }
+                    if (!_surface.IsInBorders(pos) && _surface.Contains(pos)) {
+                        Slot current;
+                        if (prev == Slot.Wall) {
+                            current = (Random.value < 0.3) ? Slot.Wall : Slot.Window;
+                        }
+                        else {
+                            current = (Random.value < 0.7) ? Slot.Window : Slot.Wall;
+                        }
 
-                    if (!_surface.IsInBorders(pos)) {
-                        _currentOutput.Add(pos, current);
-
+                        if (!_surface.IsInBorders(pos)) {
+                            _currentOutput.Add(pos, current);
+                            _currentShifts.Add(pos, -WINDOW_SHIFT * _surface.GetNormal().AsVector3());
+                        }
                     }
                 }
             }
@@ -89,6 +92,8 @@ namespace Painting
                 if (IsRoomForDoor(doorPos) && Random.value < 0.8) {
                     _currentOutput[doorPos] = Slot.Door;
                     _currentOutput[doorPos + Position3.up] = Slot.Door;
+                    _currentShifts[doorPos] = -DOOR_SHIFT * _surface.GetNormal().AsVector3();
+                    _currentShifts[doorPos + Position3.up] = -DOOR_SHIFT * _surface.GetNormal().AsVector3();
                     _blockBox.SetDoor(new[] { doorPos, doorPos + Position3.up });
                 }
             }
@@ -126,7 +131,7 @@ namespace Painting
                             break;
                     }
 
-                    blockbox.ForceSetBlock(block, position);
+                    blockbox.ForceSetBlock(block, position, _currentShifts[position]);
                 }
             }
         }
@@ -135,6 +140,11 @@ namespace Painting
         public enum Slot
         {
             Window, Wall, Door
+        }
+
+        public enum FacadeTheme
+        {
+            Business, Residential, Slum
         }
     }
 }

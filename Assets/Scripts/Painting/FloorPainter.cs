@@ -67,9 +67,10 @@ namespace Painting
             foreach (Position3 pos in _surface.GetBorderPositions()) {
                 var neighbors = _blockbox.GetRelativeNeighbors(pos + 2 * Position3.up);
                 foreach (var (relativePos, block) in neighbors) {
-                    if (block == Block.Building) {
+                    var shift = _blockbox.ShiftAt(pos);
+                    if (shift.Exist() && block == Block.Building) {
                         Position3 facing = relativePos;
-                        if (!facings.ContainsKey(pos)) facings.Add(pos, facing);
+                        if (!facings.ContainsKey(pos)) facings.Add(pos + shift.Get().AsPosition3(), facing);
                     }
                 }
             }

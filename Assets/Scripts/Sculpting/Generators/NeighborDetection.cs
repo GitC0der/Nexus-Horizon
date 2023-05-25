@@ -28,17 +28,17 @@ namespace Prepping.Generators
             int z = previousPosition.z;
 
             ++x;
-            if (x >= blockbox.sizeX) {
+            if (x >= blockbox._sizeX) {
                 x = 0;
                 ++z;
             }
 
-            if (z >= blockbox.sizeZ) {
+            if (z >= blockbox._sizeZ) {
                 z = 0;
                 ++y;
             }
 
-            if (y >= blockbox.sizeY) {
+            if (y >= blockbox._sizeY) {
                 y = 0;
                 isDone = true;
             }

@@ -30,7 +30,8 @@ namespace Prepping.Generators
         
         // (1,1) yields usual results, (6,3) more compact ones, (8,2) compact with high towers, (5,4) gives a death-star look
         // Use (6,2) for the best results
-        private const int ONCE_STRENGTH = 6;     // High: compact        | Low: floaty
+        //private const int ONCE_STRENGTH = 6;     // High: compact        | Low: floaty
+        private const int ONCE_STRENGTH = 4;     // High: compact        | Low: floaty
         private const int MIN_STRENGTH = 2;      // High: uniform height | Low: much more variety
         
 
@@ -39,12 +40,12 @@ namespace Prepping.Generators
 
             previousPosition = new Position3(-1, 0, 0);
 
-            float blockboxVolume = blockbox.sizeX * blockbox.sizeY * blockbox.sizeZ;
+            float blockboxVolume = blockbox._sizeX * blockbox._sizeY * blockbox._sizeZ;
             double threshVolume = Random.Range(minThreshTotalVolume * blockboxVolume, maxThreshTotalVolume * blockboxVolume);
 
 
-            for (int x = 0; x < blockbox.sizeX; x++) {
-                for (int z = 0; z < blockbox.sizeZ; z++) {
+            for (int x = 0; x < blockbox._sizeX; x++) {
+                for (int z = 0; z < blockbox._sizeZ; z++) {
                     Position3 pos = new Position3(x, 0, z);
                     _availableAnchors.Add(pos);
                     buildingBlocks.Add(pos);
@@ -61,9 +62,9 @@ namespace Prepping.Generators
                     startPos = _availableAnchors.ToList()[Random.Range(0, _availableAnchors.Count)];
                     //startPos = buildingBlocks[Random.Range(0, buildingBlocks.Count)];
                 } else {
-                    int startX = Random.Range(0, blockbox.sizeX - minCuboidSizeX - 1);
-                    int startY = Random.Range(0, blockbox.sizeX - minCuboidSizeX - 1);
-                    int startZ = Random.Range(0, blockbox.sizeX - minCuboidSizeX - 1);
+                    int startX = Random.Range(0, blockbox._sizeX - minCuboidSizeX - 1);
+                    int startY = Random.Range(0, blockbox._sizeX - minCuboidSizeX - 1);
+                    int startZ = Random.Range(0, blockbox._sizeX - minCuboidSizeX - 1);
                     startPos = new Position3(startX, startY, startZ);
                 }
                 GenerateCuboid(startPos, true, true);
@@ -95,9 +96,9 @@ namespace Prepping.Generators
             int minX = anchor.x;
             int minY = anchor.y;
             int minZ = anchor.z;
-            int maxX = (int)Math.Min(blockbox.sizeX - 1, anchor.x + buildingSizeX - 1);
-            int maxY = (int)Math.Min(blockbox.sizeY - 1, anchor.y + buildingSizeY - 1);
-            int maxZ = (int)Math.Min(blockbox.sizeZ - 1, anchor.z + buildingSizeZ - 1);
+            int maxX = (int)Math.Min(blockbox._sizeX - 1, anchor.x + buildingSizeX - 1);
+            int maxY = (int)Math.Min(blockbox._sizeY - 1, anchor.y + buildingSizeY - 1);
+            int maxZ = (int)Math.Min(blockbox._sizeZ - 1, anchor.z + buildingSizeZ - 1);
             if (randomDirection) {
                 if (Random.value > 0.5) {
                     minX = 2 * anchor.x - maxX;
@@ -135,12 +136,17 @@ namespace Prepping.Generators
                             buildingBlocks.Add(pos);
                             blockbox.TrySetBlock(Block.Building, pos);
                             
+                            /*
                             bool onceStrength = (minX + ONCE_STRENGTH <= x && x <= maxX - ONCE_STRENGTH)
                                                 || (minY + ONCE_STRENGTH <= y && y <= maxY - ONCE_STRENGTH) ||
                                                 (minZ + ONCE_STRENGTH <= z && z <= maxZ - ONCE_STRENGTH);
                             bool minStrength = (minX + MIN_STRENGTH <= x && x <= maxX - MIN_STRENGTH &&
                                                 minY + MIN_STRENGTH <= y && y <= maxY - MIN_STRENGTH &&
                                                 minZ + MIN_STRENGTH <= z && z <= maxZ - MIN_STRENGTH);
+                            */
+                            bool onceStrength = (minX + ONCE_STRENGTH <= x && x <= maxX - ONCE_STRENGTH)
+                                                || (minZ + ONCE_STRENGTH <= z && z <= maxZ - ONCE_STRENGTH);
+                            bool minStrength = (minX + MIN_STRENGTH <= x && x <= maxX - MIN_STRENGTH && minZ + MIN_STRENGTH <= z && z <= maxZ - MIN_STRENGTH);
                             if (onceStrength && minStrength) {
                                 _availableAnchors.Add(pos);
                             }
@@ -187,17 +193,17 @@ namespace Prepping.Generators
             int z = previousPosition.z;
 
             ++x;
-            if (x >= blockbox.sizeX) {
+            if (x >= blockbox._sizeX) {
                 x = 0;
                 ++z;
             }
 
-            if (z >= blockbox.sizeZ) {
+            if (z >= blockbox._sizeZ) {
                 z = 0;
                 ++y;
             }
 
-            if (y >= blockbox.sizeY) {
+            if (y >= blockbox._sizeY) {
                 y = 0;
                 isDone = true;
             }

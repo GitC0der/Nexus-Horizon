@@ -14,11 +14,12 @@ namespace Prepping
     /// </summary>
     public class Blockbox
     {
-        public readonly int sizeX;
-        public readonly int sizeY;
-        public readonly int sizeZ;
+        public readonly int _sizeX;
+        public readonly int _sizeY;
+        public readonly int _sizeZ;
 
-        private Block[][][] blocks;
+        private Block[][][] _blocks;
+        private Vector3[][][] _shifts;
         private HashSet<Position3> _doorPositions;
 
         /// <summary>
@@ -28,9 +29,9 @@ namespace Prepping
         /// <param name="sizeY">Height in Y of the box</param>
         /// <param name="sizeZ">Depth in Z of the box</param>
         public Blockbox(int sizeX, int sizeY, int sizeZ) {
-            this.sizeX = sizeX;
-            this.sizeY = sizeY;
-            this.sizeZ = sizeZ;
+            this._sizeX = sizeX;
+            this._sizeY = sizeY;
+            this._sizeZ = sizeZ;
             _doorPositions = new HashSet<Position3>();
             
             EmptyBox();
@@ -40,14 +41,17 @@ namespace Prepping
         ///     Empty the blockbox, i.e set all blocks to Block.NULL
         /// </summary>
         public void EmptyBox() {
-            blocks = new Block[sizeX][][];
-            for (int x = 0; x < sizeX; x++) {
-                blocks[x] = new Block[sizeY][];
-                for (int y = 0; y < sizeY; y++) {
-                    blocks[x][y] = new Block[sizeZ];
-                    for (int z = 0; z < sizeZ; z++) {
-                        blocks[x][y][z] = Block.Void;
-                        //blocks[x, y, z] = Block.NULL;
+            _blocks = new Block[_sizeX][][];
+            _shifts = new Vector3[_sizeX][][];
+            for (int x = 0; x < _sizeX; x++) {
+                _blocks[x] = new Block[_sizeY][];
+                _shifts[x] = new Vector3[_sizeY][];
+                for (int y = 0; y < _sizeY; y++) {
+                    _blocks[x][y] = new Block[_sizeZ];
+                    _shifts[x][y] = new Vector3[_sizeZ];
+                    for (int z = 0; z < _sizeZ; z++) {
+                        _blocks[x][y][z] = Block.Void;
+                        _shifts[x][y][z] = new Vector3(0,0,0);
                     }
                 } 
             }
@@ -79,14 +83,20 @@ namespace Prepping
             if (!IsInsideBox(position)) {
                 throw new ArgumentException($"Position {position} was not inside the blockbox");
             }
-            return blocks[position.x][position.y][position.z];
-        } 
+            return _blocks[position.x][position.y][position.z];
+        }
+
+        public Optional<Vector3> ShiftAt(Position3 position) {
+            if (!IsInsideBox(position)) return new Optional<Vector3>();
+
+            return new Optional<Vector3>(_shifts[position.x][position.y][position.z]);
+        }
         
         private bool IsInside(int value, int min, int max) {
             return min <= value && value < max;
         }
 
-        private bool SetBlock(Block block, Position3 position, bool doForce) {
+        private bool SetBlock(Block block, Position3 position, bool doForce, Vector3 shift = default) {
             if (!IsInsideBox(position)) {
                 return false;
             }
@@ -97,42 +107,45 @@ namespace Prepping
                 return false;
             }
 
-            blocks[position.x][position.y][position.z] = block;
+            _blocks[position.x][position.y][position.z] = block;
+            _shifts[position.x][position.y][position.z] = shift;
             return true;
         }
-
+        
         /// <summary>
         ///     Forces the generation of the given block, i.e it will replace any block already present at that location
         /// </summary>
         /// <param name="block">The new block</param>
         /// <param name="position">The position of the new block</param>
+        /// <param name="shift">The shift of the postion of the block. Especially useful for facades, with balconies and such</param>
         /// <returns>True if a block was already present, false otherwise</returns>
-        public bool ForceSetBlock(Block block, Position3 position) => SetBlock(block, position, true);
+        public bool ForceSetBlock(Block block, Position3 position, Vector3 shift = default) => SetBlock(block, position, true, shift);
         
         /// <summary>
         ///     Tries to place a block at a given location. If a block is already present, does nothing
         /// </summary>
         /// <param name="block">The new block</param>
         /// <param name="position">The position of the new block</param>
+        /// /// <param name="shift">The shift of the postion of the block. Especially useful for facades, with balconies and such</param>
         /// <returns>True if the new block was successfully placed, false otherwise</returns>
-        public bool TrySetBlock(Block block, Position3 position) => SetBlock(block, position, false);
+        public bool TrySetBlock(Block block, Position3 position, Vector3 shift = default) => SetBlock(block, position, false, shift);
 
         /// <summary>
         ///     Return true if the given position is inside the box, false otherwise
         /// </summary>
         public bool IsInsideBox(Position3 position) {
-            return IsInside(position.x, 0, sizeX) && IsInside(position.y, 0, sizeY) && IsInside(position.z, 0, sizeZ);
+            return IsInside(position.x, 0, _sizeX) && IsInside(position.y, 0, _sizeY) && IsInside(position.z, 0, _sizeZ);
         }
 
         public bool IsStrictlyInside(Position3 position) {
-            return (position.x != 0 && position.x != sizeX) && (position.y != 0 && position.y != sizeY) &&
-                   (position.z != 0 && position.z != sizeZ) && IsInsideBox(position);
+            return (position.x != 0 && position.x != _sizeX) && (position.y != 0 && position.y != _sizeY) &&
+                   (position.z != 0 && position.z != _sizeZ) && IsInsideBox(position);
         }
 
         private void Check(Dictionary<Position3, Block> acc, Position3 position, Position3 displ) {
             Position3 newPos = position + displ;
             if (IsInsideBox(newPos)) {
-                Block block = blocks[newPos.x][newPos.y][newPos.z];
+                Block block = _blocks[newPos.x][newPos.y][newPos.z];
                 //if (!block.Equals(Block.NULL)) {
                     acc.Add(displ, block);
                 //}
