@@ -47,6 +47,18 @@ namespace Painting
         public ActualProp PropAt(Position3 position) {
             return _props.FirstOrDefault(prop => prop.GetOccupiedPositions().Contains(position));
         }
+
+        public bool RemoveProp(GameObject gameObject) {
+            foreach (ActualProp prop in _props) {
+                if (prop.GetGameObject() == gameObject) {
+                    Object.Destroy(prop.GetGameObject());
+                    _props.Remove(prop);
+                    return true;
+                }
+            }
+
+            return false;
+        }
         
         public bool RemovePropAt(Position3 position) {
             foreach (var prop in _props.Where(prop => prop.GetOccupiedPositions().Contains(position))) {
