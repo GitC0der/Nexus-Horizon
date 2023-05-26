@@ -50,7 +50,9 @@ namespace Painting
 
         public bool RemoveProp(GameObject prop) => _propBox.RemoveProp(prop);
         
-        public ActualProp PropAt(Position3 position) => _propBox.PropAt(position); 
+        public ActualProp PropAt(Position3 position) => _propBox.PropAt(position);
+
+        public HashSet<ActualProp> RailingsAt(Position3 position) => _propBox.RailingsAt(position);
         public bool RemovePropAt(Position3 position) {
             return _propBox.RemovePropAt(position);
         }

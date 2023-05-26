@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using DefaultNamespace;
+using Interactions;
+using JetBrains.Annotations;
 using Painting;
 using Prepping;
 using Prepping.Generators;
@@ -36,6 +38,7 @@ public class GameManager : MonoBehaviour {
     }
 
     private PropManager _propManager;
+    private InteractionsManager _interactionsManager;
     
     private GameObject voidPrefab;
 
@@ -74,10 +77,14 @@ public class GameManager : MonoBehaviour {
         
         _propManager = GetComponentInChildren<PropManager>();
         _propManager.Initialize(blockbox);
+
+        _interactionsManager = GetComponentInChildren<InteractionsManager>();
+        _interactionsManager.Initialize();
         
         // Stored there for easy access in any
-        ServiceLocator.RegisterService(this);
-        ServiceLocator.RegisterService(_propManager);
+        SL.RegisterService(this);
+        SL.RegisterService(_propManager);
+        SL.RegisterService(_interactionsManager);
         
         prefabs = new Dictionary<Block, GameObject> {
             { Block.Building, buildingPrefab },
@@ -179,6 +186,7 @@ public class GameManager : MonoBehaviour {
         
         //var surfaces = FindAllsurfacesTest();
         var surfaces = Findsurfaces();
+        _surfaces = surfaces;
 
         // HashSet<Position3> blocks = new HashSet<Position3>();
         // for (int x = 0; x < 100; x++) {
@@ -362,6 +370,15 @@ public class GameManager : MonoBehaviour {
         
         
         Lightmapping.BakeAsync();
+    }
+
+    [CanBeNull]
+    public Surface FindSurfaceBelow(Position3 pos) {
+        foreach (Surface surface in _surfaces) {
+            if (surface.IsFloor() && surface.Contains(pos + Position3.down)) return surface;
+        }
+
+        return null;
     }
     
     private void GenerateAllFacades(HashSet<Surface> allSurfaces) {
@@ -746,7 +763,6 @@ public class GameManager : MonoBehaviour {
             Destroy(cubeTransform.gameObject);
         }
     }
-    
 
 
 }

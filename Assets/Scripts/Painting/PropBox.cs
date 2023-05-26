@@ -13,12 +13,14 @@ namespace Painting
         private HashSet<ActualProp> _props;
         private GameObject _propHolder;
         private HashSet<Position3> _occupiedBlocks;
+        private HashSet<(Position3, ActualProp)> _railings;
 
         public PropBox(Blockbox blockbox, GameObject propHolder) {
             _blockbox = blockbox;
             _propHolder = propHolder;
             _props = new HashSet<ActualProp>();
             _occupiedBlocks = new HashSet<Position3>();
+            _railings = new ();
         }
 
         [CanBeNull]
@@ -28,9 +30,10 @@ namespace Painting
                 var prop = new ActualProp(prefab, _propHolder, position, facing, blocksIfPossible);
                 _props.Add(prop);
                 if (prefab.IsClearanceHard()) _occupiedBlocks.AddRange(blocksIfPossible);
+                if (prefab.GameObject().name == "Railing") _railings.Add((anchorPos, prop));
                 
                 //TODO: DEBUG
-                if (ServiceLocator.GetService<GameManager>().debugMode)
+                if (SL.Get<GameManager>().debugMode)
                     foreach (Position3 pos in blocksIfPossible) {
                         if (pos.y == anchorPos.y + 1) _blockbox.ForceSetBlock(Block.Plaza, pos - Position3.up);
                         _blockbox.ForceSetBlock(Block.Utilities, anchorPos);
@@ -48,9 +51,21 @@ namespace Painting
             return _props.FirstOrDefault(prop => prop.GetOccupiedPositions().Contains(position));
         }
 
+        [CanBeNull]
+        public HashSet<ActualProp> RailingsAt(Position3 position) {
+            var railings = new HashSet<ActualProp>();
+            foreach (var (pos, prop) in _railings) {
+                if (pos == position) railings.Add(prop);
+            }
+
+            return railings;
+        }
+
         public bool RemoveProp(GameObject gameObject) {
             foreach (ActualProp prop in _props) {
                 if (prop.GetGameObject() == gameObject) {
+                    if (prop.GetGameObject().name == "Railing")
+                        _railings.Remove((prop.GetGameObject().transform.position.AsPosition3(), prop));
                     Object.Destroy(prop.GetGameObject());
                     _props.Remove(prop);
                     return true;
