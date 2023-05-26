@@ -162,10 +162,24 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        GenerateOutsideTestsurface();
+        // GenerateOutsideTestsurface();
+        GenerateOutsideTestTerrace();
         
         //var surfaces = FindAllsurfacesTest();
         var surfaces = Findsurfaces();
+
+        // HashSet<Position3> blocks = new HashSet<Position3>();
+        // for (int x = 0; x < 100; x++) {
+        //     for (int z = 0; z < 100; z++) {
+        //         blocks.Add(new Position3(x, 30, z));
+        //     }
+        // }
+        // Surface surface = new Surface(blocks, Position3.up, blockbox);
+        //
+        // DrawOneSurface(surface);
+        
+
+        
 
         if (true) {
             GenerateAllFacades(surfaces);
@@ -518,7 +532,6 @@ public class GameManager : MonoBehaviour {
         return currentsurface;
     }
 
-
     private void GenerateOutsideTestsurface() {
         int height = 50;
         int width = 15;
@@ -574,6 +587,57 @@ public class GameManager : MonoBehaviour {
                 if (pref != null) {
                     Vector3 offset = isBalcony ? new Vector3(0, 0, -1): Vector3.zero;
                     GameObject obj = Instantiate(pref, new Position3(origin.x - x,origin.y - y, -10).AsVector3() + offset, Quaternion.identity);
+                    cubes.Add(obj);
+                }
+            }
+        }
+    }
+    
+    private void GenerateOutsideTestTerrace() {
+        // Create the surface
+        HashSet<Position3> blocks = new HashSet<Position3>();
+        for (int x = 30; x < 50; x++) {
+            for (int z = 30; z < 50; z++) {
+                blocks.Add(new Position3(x, 30, z));
+            }
+        }
+        Surface surface = new Surface(blocks, Position3.up, blockbox);
+        
+        Position3 origin = new Position3(-50, 30, 0);
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Roof1, surface.GetWidth(),
+            surface.GetHeight(), new Position2(2, 2), 'B');
+        while (!wfc.IsDone()) {
+            wfc.GenerateNextSlot();
+        }
+
+        char[][] table = wfc.GetOutput();
+        for (int x = 0; x < table[0].Length; x++) {
+            for (int z = 0; z < table.Length; z++) {
+                char c = table[z][x];
+                GameObject pref = null;
+                switch (c) {
+                    case 'B':
+                        pref = trainPrefab;
+                        break;
+                    case 'S':
+                        pref = parkPrefab;
+                        break;
+                    case 'C':
+                        pref = skybridgePrefab;
+                        break;
+                    case '-':
+                        pref = buildingPrefab;
+                        break;
+                    case '@':
+                        pref = plazaPrefab;
+                        break;
+                    default:
+                        pref = voidPrefab;
+                        break;
+                }
+                
+                if (pref != null) {
+                    GameObject obj = Instantiate(pref, new Position3(origin.x - x,-10, origin.z - z).AsVector3(), Quaternion.identity);
                     cubes.Add(obj);
                 }
             }
