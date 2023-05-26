@@ -57,11 +57,11 @@ public class GameManager : MonoBehaviour {
     private bool instantGeneration = true;
     private HashSet<Surface> _surfaces = new();
 
-    private HashSet<GameObject> cubes = new HashSet<GameObject>();
+    private Dictionary<Position3, GameObject> _cubes = new();
     
     
 
-    private GameObject PrefabFrom(Block block) {
+    public GameObject PrefabFrom(Block block) {
         GameObject prefab;
         prefabs.TryGetValue(block, out prefab);
         return prefab;
@@ -90,8 +90,8 @@ public class GameManager : MonoBehaviour {
             { Block.Building, buildingPrefab },
             { Block.Park, parkPrefab },
             { Block.Void, voidPrefab },
-            { Block.Skybridge , skybridgePrefab},
-            { Block.Train , trainPrefab},
+            { Block.Window , skybridgePrefab},
+            { Block.Door , trainPrefab},
             { Block.Walkway, walkwayPrefab},
             { Block.Plaza, plazaPrefab},
             { Block.Utilities , utilitiesPrefab}
@@ -156,14 +156,26 @@ public class GameManager : MonoBehaviour {
 
     public List<GameObject> GetPropPrefabs() => _propPrefabs.Values.ToList();
 
+    public GameObject BlockGameObjectAt(Position3 pos) {
+        if (_cubes.ContainsKey(pos)) return _cubes[pos];
+        return null;
+    }
+    
     private void Regenerate() {
-        foreach (GameObject cube in cubes) {
+        foreach (var (_, cube) in _cubes) {
             Destroy(cube);
         }
         
+        for (int i = GameObject.Find("Cube Holder").transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child = GameObject.Find("Cube Holder").transform.GetChild(i);
+            Destroy(child.gameObject);
+        }
+        
+        
         _propManager.RemoveAllProps();
 
-        cubes = new HashSet<GameObject>();
+        _cubes = new();
         /*
         foreach (GameObject obj in objects)
         {
@@ -233,7 +245,7 @@ public class GameManager : MonoBehaviour {
             
             Block block;
             if (surface.GetOrientation() == Orientation.Roof) {
-                block = Block.Train;
+                block = Block.Door;
             } else if (surface.GetOrientation() == Orientation.Floor) {
                 block = Block.Park;
             } else if (surface.GetOrientation() == Orientation.WallE) {
@@ -241,9 +253,9 @@ public class GameManager : MonoBehaviour {
             } else if (surface.GetOrientation() == Orientation.WallW) {
                 block = Block.Walkway;
             } else if (surface.GetOrientation() == Orientation.WallS) {
-                block = Block.Skybridge;
+                block = Block.Window;
             } else if (surface.GetOrientation() == Orientation.WallN) {
-                block = Block.Skybridge;
+                block = Block.Window;
             } else {
                 throw new Exception("WHAT????");
             }
@@ -256,8 +268,8 @@ public class GameManager : MonoBehaviour {
             
             
             if (surface.GetOrientation() == Orientation.Roof) {
-                block = new List<Block>() { Block.Park, Block.Skybridge, Block.Train, Block.Walkway }[Random.Range(0, 4)];
-                block = Block.Train;
+                block = new List<Block>() { Block.Park, Block.Window, Block.Door, Block.Walkway }[Random.Range(0, 4)];
+                block = Block.Door;
                 foreach (Position3 pos in surface.GetBlocks()) {
                     //blockbox.ForceSetBlock(Block.Park, pos);
                     blockbox.ForceSetBlock(block, pos);
@@ -275,7 +287,7 @@ public class GameManager : MonoBehaviour {
         foreach (Surface surface in surfaces) {
             if (surface.IsFloor()) {
                 foreach (Position3 position in surface.GetBorder(borderType)?.GetPositions() ?? new HashSet<Position3>()) {
-                    Block block = Block.Train;
+                    Block block = Block.Door;
                     blockbox.ForceSetBlock(block, position);
                 }
             }
@@ -292,10 +304,10 @@ public class GameManager : MonoBehaviour {
                             block = Block.Park;
                             break;
                         case BorderType.Top:
-                            block = Block.Train;
+                            block = Block.Door;
                             break;
                         case BorderType.Ground:
-                            block = Block.Skybridge;
+                            block = Block.Window;
                             break;
                         case BorderType.Overhang:
                             block = Block.Walkway;
@@ -307,7 +319,7 @@ public class GameManager : MonoBehaviour {
                             block = Block.Utilities;
                             break;
                         default:
-                            block = Block.Skybridge;
+                            block = Block.Window;
                             break;
                     }
 
@@ -426,13 +438,13 @@ public class GameManager : MonoBehaviour {
                 if (x < output.Length && z < output[0].Length) {
                     switch (wfc.GetOutput()[x][z]) {
                         case 'B':
-                            block = Block.Train;
+                            block = Block.Door;
                             break;
                         case 'S':
                             block = Block.Park;
                             break;
                         case 'C':
-                            block = Block.Skybridge;
+                            block = Block.Window;
                             break;
                         case '-':
                             block = Block.Building;
@@ -449,7 +461,7 @@ public class GameManager : MonoBehaviour {
                     
 
                     foreach (Position3 p in surface.GetBlocks()) {
-                        blockbox.ForceSetBlock(Block.Skybridge, p);
+                        blockbox.ForceSetBlock(Block.Window, p);
                     }
                 }
                 
@@ -499,6 +511,30 @@ public class GameManager : MonoBehaviour {
         }
 
         return surfaces;
+    }
+
+    public Surface GetSurfaceOn(Position3 position) {
+        return _surfaces.FirstOrDefault(surface => surface.Contains(position));
+    }
+
+    public void RemoveAllPropsOn(Surface surface) {
+        if (surface == null) return;
+        foreach (Position3 pos in surface.GetBlocks()) {
+            _propManager.RemovePropsAt(pos + Position3.up);
+        }
+    }
+
+    public bool ReplaceBlockAt(Position3 position, Vector3 shift, Block block) {
+        blockbox.ForceSetBlock(block, position, shift);
+        if (_cubes.ContainsKey(position)) {
+            Destroy(_cubes[position]);
+            _cubes.Remove(position);
+        }
+
+        var cube = Instantiate(PrefabFrom(block), position.AsVector3() + shift, Quaternion.identity, GameObject.Find("Cube Holder").transform);
+        if (cube != null) _cubes.Add(position, cube);
+        return true;
+
     }
 
     private HashSet<Position3> BfsSurface(Position3 startingPos, Position3 normalDirection) {
@@ -615,8 +651,9 @@ public class GameManager : MonoBehaviour {
 
                 if (pref != null) {
                     Vector3 offset = isBalcony ? new Vector3(0, 0, -1): Vector3.zero;
-                    GameObject obj = Instantiate(pref, new Position3(origin.x - x,origin.y - y, -10).AsVector3() + offset, Quaternion.identity);
-                    cubes.Add(obj);
+                    Position3 position = new Position3(origin.x - x, origin.y - y, -10);
+                    GameObject obj = Instantiate(pref, position.AsVector3() + offset, Quaternion.identity);
+                    _cubes.Add(position,obj);
                 }
             }
         }
@@ -666,8 +703,9 @@ public class GameManager : MonoBehaviour {
                 }
                 
                 if (pref != null) {
-                    GameObject obj = Instantiate(pref, new Position3(origin.x - x,-10, origin.z - z).AsVector3(), Quaternion.identity);
-                    cubes.Add(obj);
+                    Position3 position = new Position3(origin.x - x, -10, origin.z - z);
+                    GameObject obj = Instantiate(pref, position.AsVector3(), Quaternion.identity);
+                    _cubes.Add(position,obj);
                 }
             }
         }
@@ -683,7 +721,7 @@ public class GameManager : MonoBehaviour {
                     var shift = blockbox.ShiftAt(blockPosition);
                     if (shift.Exist() && block != Block.Void) {
                         GameObject obj = Instantiate(PrefabFrom(block), blockPosition.AsVector3() + shift.Get(), Quaternion.identity, cubeHolder.transform);
-                        cubes.Add(obj);
+                        _cubes.Add(blockPosition, obj);
                     }
                 }
             }

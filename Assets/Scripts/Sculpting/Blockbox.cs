@@ -96,6 +96,8 @@ namespace Prepping
             return min <= value && value < max;
         }
 
+        public bool IsDoor(Position3 position) => _doorPositions.Contains(position);
+
         private bool SetBlock(Block block, Position3 position, bool doForce, Vector3 shift = default) {
             if (!IsInsideBox(position)) {
                 return false;
@@ -107,8 +109,11 @@ namespace Prepping
                 return false;
             }
 
+            if (currentBlock == Block.Door && _doorPositions.Contains(position)) _doorPositions.Remove(position);
+
             _blocks[position.x][position.y][position.z] = block;
             _shifts[position.x][position.y][position.z] = shift;
+            if (block == Block.Door && !_doorPositions.Contains(position)) _doorPositions.Add(position);
             return true;
         }
         

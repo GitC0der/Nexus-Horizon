@@ -62,24 +62,34 @@ namespace Painting
         }
 
         public bool RemoveProp(GameObject gameObject) {
+            HashSet<ActualProp> removed = new();
             foreach (ActualProp prop in _props) {
                 if (prop.GetGameObject() == gameObject) {
                     if (prop.GetGameObject().name == "Railing")
                         _railings.Remove((prop.GetGameObject().transform.position.AsPosition3(), prop));
-                    Object.Destroy(prop.GetGameObject());
-                    _props.Remove(prop);
-                    return true;
+                    removed.Add(prop);
                 }
+            }
+            
+            foreach (ActualProp prop in removed) {
+                Object.Destroy(prop.GetGameObject());
+                _props.Remove(prop);
+                _occupiedBlocks.ExceptWith(prop.GetOccupiedPositions());
             }
 
             return false;
         }
         
-        public bool RemovePropAt(Position3 position) {
+        public bool RemovePropsAt(Position3 position) {
+            HashSet<ActualProp> removed = new();
             foreach (var prop in _props.Where(prop => prop.GetOccupiedPositions().Contains(position))) {
+                removed.Add(prop);
+            }
+            
+            foreach (ActualProp prop in removed) {
                 Object.Destroy(prop.GetGameObject());
                 _props.Remove(prop);
-                return true;
+                _occupiedBlocks.ExceptWith(prop.GetOccupiedPositions());
             }
 
             return false;
@@ -112,10 +122,14 @@ namespace Painting
                             return new HashSet<Position3>();
                         }
                         
+                        
+                        
                         positions.Add(newPos);
                     }
                 }
             }
+            
+            // TODO: Check for doors here
 
             if (prefab.SizeX() == 0 && prefab.SizeY() == 0 && prefab.SizeZ() == 0) positions.Add(pos);
 
@@ -128,6 +142,7 @@ namespace Painting
                 Object.Destroy(prop.GetGameObject());
             }
 
+            _occupiedBlocks = new HashSet<Position3>();
             _props = new HashSet<ActualProp>();
         }
     }

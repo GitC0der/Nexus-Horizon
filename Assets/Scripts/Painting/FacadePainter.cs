@@ -33,6 +33,8 @@ namespace Painting
             
             if (surface.GetHeight() > 2) DrawDoors();
 
+            _isDone = true;
+
         }
 
         private void Windows_SmallRectangular() {
@@ -141,6 +143,8 @@ namespace Painting
                     _currentOutput[doorPos + Position3.up] = Slot.Door;
                     _currentShifts[doorPos] = -DOOR_SHIFT * _surface.GetNormal().AsVector3();
                     _currentShifts[doorPos + Position3.up] = -DOOR_SHIFT * _surface.GetNormal().AsVector3();
+                    _currentOutput[doorPos + Position3.down] = Slot.Wall;
+                    _currentShifts[doorPos + Position3.down] = Vector3.zero;
                     _blockBox.SetDoor(new[] { doorPos, doorPos + Position3.up });
                 }
             }
@@ -150,8 +154,9 @@ namespace Painting
             for (int i = 0; i < 3; i++) {
                 for (int y = 0; y < 3; y++) {
                     Position3 newPos = pos + (i-1) * _surface.GetWidthDirection() + y*Position3.up;
-                    if (!_blockBox.IsStrictlyInside(newPos) || _blockBox.BlockAt(newPos) == Block.Void) return false;
+                    if (!_blockBox.IsStrictlyInside(newPos) || !_blockBox.IsStrictlyInside(newPos + 2*_surface.GetNormal()) || _blockBox.BlockAt(newPos) == Block.Void) return false;
                     if (_blockBox.BlockAt(newPos + _surface.GetNormal()) != Block.Void) return false;
+                    if (_blockBox.BlockAt(newPos + 2*_surface.GetNormal()) != Block.Void) return false;
                 }
             }
 
@@ -161,6 +166,8 @@ namespace Painting
         }
         
         public bool IsDone() => _isDone;
+        
+        
 
         public void AddToBlockbox(Blockbox blockbox) {
             foreach (var (position, slot) in _currentOutput) {
@@ -171,10 +178,10 @@ namespace Painting
                             block = Block.Building;
                             break;
                         case Slot.Window:
-                            block = Block.Skybridge;
+                            block = Block.Window;
                             break;
                         case Slot.Door:
-                            block = Block.Train;
+                            block = Block.Door;
                             break;
                     }
 
@@ -183,6 +190,30 @@ namespace Painting
             }
         }
 
+        public Dictionary<Position3, Vector3> GetShifts() => _currentShifts;
+        public Dictionary<Position3, Block> GetBlocks() {
+            Dictionary<Position3, Block> blocks = new();
+            foreach (var (pos, slot) in _currentOutput) {
+                Block block;
+                switch (slot) {
+                    case Slot.Window:
+                        block = Block.Window;
+                        break;
+                    case Slot.Wall:
+                        block = Block.Building;
+                        break;
+                    case Slot.Door:
+                        block = Block.Door;
+                        break;
+                    default:
+                        block = Block.Building;
+                        break;
+                }
+                blocks.Add(pos, block);
+            }
+
+            return blocks;
+        }
 
         public enum Slot
         {

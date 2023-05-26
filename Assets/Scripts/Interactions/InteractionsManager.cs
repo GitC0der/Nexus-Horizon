@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Painting;
 using Prepping;
 using UnityEngine;
@@ -62,9 +63,109 @@ namespace Interactions
             };
         }
 
-        public bool DestroyBlock(GameObject block) {
+        public void DestroyBlock(GameObject block) {
+            GameManager gameManager = SL.Get<GameManager>();
             string actualName = GetName(block);
-            return false;
+            Position3 position = block.transform.position.AsPosition3();
+            switch (actualName) {
+                case "Window":
+                    Surface surface = gameManager.GetSurfaceOn(position);
+                    if (surface != null) {
+                        foreach (var pos in surface.GetBlocks().Where(p => gameManager.GetBlockbox().BlockAt(p) != Block.Door)) {
+                            gameManager.ReplaceBlockAt(pos, Vector3.zero, Block.Building);
+                        }
+                    }
+                    
+                    
+                    break;
+                case "Door":
+                    surface = gameManager.GetSurfaceOn(position);
+                    Position3 bottom = position;
+                    if (gameManager.GetBlockbox().BlockAt(position + Position3.up) == Block.Door) {
+                        gameManager.ReplaceBlockAt(position + Position3.up, Vector3.zero, Block.Building);
+                    }
+
+                    if (gameManager.GetBlockbox().BlockAt(position + Position3.down) == Block.Door) {
+                        gameManager.ReplaceBlockAt(position + Position3.down, Vector3.zero, Block.Building);
+                        bottom = position + Position3.down;
+                    }
+                    gameManager.ReplaceBlockAt(position, Vector3.zero, Block.Building);
+
+                    if (gameManager.GetBlockbox().GetDoorsLeadingTo(surface.GetBorderPositions()).Count == 0) {
+                        Surface floor = gameManager.FindSurfaceBelow(bottom + surface.GetNormal());
+                        gameManager.RemoveAllPropsOn(floor);
+                    }
+                    
+                    /*
+                    var border = surface.GetBorder(BorderType.None);
+                    if (border != null) {
+                        Position3 pos = border.GetPositions().ToList()[0];
+                        var listOfPos = SL.Get<PropManager>().RailingsAt(pos).ToList();
+                        if (listOfPos.Count > 0) DestroyProp(listOfPos[0].GetGameObject());
+                    }
+                    */
+                    
+                    break;
+                case "Building":
+                    Position3? doorPos = null;
+                    surface = gameManager.GetSurfaceOn(position);
+                    if (surface != null && surface.IsFacade() && !surface.GetBorderPositions().Contains(position)) {
+                        
+                        // Removing the doors
+                        foreach (Position3 blockPos in surface.GetBlocks()) {
+                            if (gameManager.GetBlockbox().BlockAt(blockPos) == Block.Door) {
+                                doorPos = blockPos;
+                            }
+                        }
+
+                        if (doorPos != null) {
+                            DestroyBlock(gameManager.BlockGameObjectAt(doorPos.Value));
+                        }
+
+                        // Replacing the blocks
+                        FacadePainter painter = new FacadePainter(surface, gameManager.GetBlockbox());
+                        var blocks = painter.GetBlocks();
+                        var shifts = painter.GetShifts();
+                        foreach (var (pos, b) in blocks) {
+                            gameManager.ReplaceBlockAt(pos, shifts[pos], b);
+                        }
+                        
+                        // Creating a new terrace
+                        Position3? newDoorPos = null;
+                        foreach (Position3 surfacePos in surface.GetBlocks()) {
+                            if (gameManager.GetBlockbox().IsDoor(surfacePos)) newDoorPos = surfacePos;
+                        }
+                        
+                        
+                        if (newDoorPos != null) {
+                            Surface floor = gameManager.FindSurfaceBelow(newDoorPos.Value + surface.GetNormal());
+                            if (floor == null) {
+                                floor = gameManager.FindSurfaceBelow(newDoorPos.Value + Position3.up + surface.GetNormal());
+                                if (floor == null) {
+                                    floor = gameManager.FindSurfaceBelow(newDoorPos.Value + Position3.down + surface.GetNormal());
+                                }
+                            }
+                            gameManager.RemoveAllPropsOn(floor);
+
+                            if (floor != null) {
+                                var floorPainter = new FloorPainter(floor, gameManager.GetBlockbox(), SL.Get<PropManager>(), gameManager.useLights);
+                            }
+                        }
+                        
+                        
+                    } else if (surface != null && surface.IsFloor()) {
+                        Surface floor = gameManager.FindSurfaceBelow(position + Position3.up);
+                        gameManager.RemoveAllPropsOn(floor);
+
+                        FloorPainter painter = new FloorPainter(surface, gameManager.GetBlockbox(), SL.Get<PropManager>(), gameManager.useLights);
+                        
+                    }
+                    
+                    
+                    break;
+                default:
+                    break;
+            }
         }
 
         private string GetName(GameObject gameobject) {

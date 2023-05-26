@@ -13,8 +13,8 @@ namespace Prepping
         Building,
         Park,
         Walkway,
-        Skybridge,
-        Train,
+        Window,
+        Door,
         Utilities,
         Plaza
         
