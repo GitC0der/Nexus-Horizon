@@ -67,10 +67,9 @@ namespace Painting
             foreach (Position3 pos in _surface.GetBorderPositions()) {
                 var neighbors = _blockbox.GetRelativeNeighbors(pos + 2 * Position3.up);
                 foreach (var (relativePos, block) in neighbors) {
-                    var shift = _blockbox.ShiftAt(pos);
-                    if (shift.Exist() && block == Block.Building) {
+                    if (block == Block.Building) {
                         Position3 facing = relativePos;
-                        if (!facings.ContainsKey(pos)) facings.Add(pos + shift.Get().AsPosition3(), facing);
+                        if (!facings.ContainsKey(pos)) facings.Add(pos, facing);
                     }
                 }
             }
@@ -86,10 +85,13 @@ namespace Painting
                 Vector3 facing = facings[position].AsVector3();
                 PropPrefab prefab = _propManager.WallLamp();
                 Vector3 newPos = ActualPos(position.AsVector3(), prefab.Offset(), facing);
-                var gameObject = _propManager.Instantiate(prefab, position, newPos, facing, _surface.GetBlocks());
-                if (gameObject != null) {
-                    if (!_enableLights) gameObject.GetComponentInChildren<UnityEngine.Light>().enabled = false;
-                    ++placedCount;
+                var shift = _blockbox.ShiftAt(newPos.AsPosition3());
+                if (shift.Exist()) {
+                    var gameObject = _propManager.Instantiate(prefab, position, newPos + shift.Get(), facing, _surface.GetBlocks());
+                    if (gameObject != null) {
+                        if (!_enableLights) gameObject.GetComponentInChildren<UnityEngine.Light>().enabled = false;
+                        ++placedCount;
+                    }
                 }
             } while (placedCount < target && iterationsCount < 20);
 
@@ -164,7 +166,6 @@ namespace Painting
             do {
                 ++iterationsCount;
                 Position3 position = _surface.GetBlocks().ToList()[Random.Range(0, _surface.GetBlocks().Count)];
-                Vector3 displ = 0.5f * _surface.GetWidthDirection().AsVector3() + 0.5f * _surface.GetHeightDirection().AsVector3() + 0.5f*Vector3.up;
                 Vector3 facing = RandomFloorOrientation();
                 Vector3 newPos = ActualPos(position.AsVector3(), prefab.Offset(), facing);
                 var gameObject = _propManager.Instantiate(prefab, position, newPos, facing, _surface.GetBlocks());
@@ -183,7 +184,6 @@ namespace Painting
                     ++iterationsCount;
                     Position3 position = _surface.GetBlocks().ToList()[Random.Range(0, _surface.GetBlocks().Count)];
                     if (!_surface.IsInBorders(position)) {
-                        Vector3 displ = 0.5f * _surface.GetWidthDirection().AsVector3() + 0.5f * _surface.GetHeightDirection().AsVector3() + 0.5f*Vector3.up;
                         Vector3 facing = RandomFloorOrientation();
                         Vector3 newPos = ActualPos(position.AsVector3(), _propManager.TableSet().Offset(), facing);
                         //var gameObject = _propManager.Instantiate(_propManager.TableSet(), position, newPos, facing, _surface.GetBlocks());

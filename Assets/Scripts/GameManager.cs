@@ -134,6 +134,8 @@ public class GameManager : MonoBehaviour {
         }
         
     }
+
+    public Blockbox GetBlockbox() => blockbox;
     
     private void Regenerate() {
         foreach (GameObject cube in cubes) {
@@ -167,8 +169,10 @@ public class GameManager : MonoBehaviour {
 
         if (true) {
             GenerateAllFacades(surfaces);
+            //DrawSurfaceNormals(surfaces);
         } else {
             GenerateAllWallBorders(surfaces);
+            
         }
         GenerateAllFloors(surfaces);
         
@@ -343,6 +347,18 @@ public class GameManager : MonoBehaviour {
         }
     }
 
+    private void DrawSurfaceNormals(HashSet<Surface> surfaces) {
+        var newSurfaces = surfaces.Where(s => s.GetWidth() > 3 && s.GetHeight() > 3).ToList();
+        foreach (Surface surface in newSurfaces) {
+            Position3 pos = surface.GetBlocks().ToList()[surface.GetBlocks().Count / 2];
+            if (blockbox.IsInsideBox(pos + 2 * surface.GetNormal())) {
+                blockbox.ForceSetBlock(Block.Utilities, pos + surface.GetNormal(), Vector3.zero);
+                blockbox.ForceSetBlock(Block.Utilities, pos + 2*surface.GetNormal(), Vector3.zero);
+            }
+            
+        }
+    }
+
     private void GenerateSingleRandomSurfaceRoof(HashSet<Surface> surfaces) {
         var p = 0;
         var roofs = surfaces.Where(f => f.GetOrientation() == Orientation.Roof).ToList();
@@ -421,16 +437,16 @@ public class GameManager : MonoBehaviour {
                     Position3 currentPos = new(x, y, z);
                     Dictionary<Position3, Block> neighbors = blockbox.GetRelativeNeighbors(currentPos);
                     
-                    // Checking all blocks that are null and have at least one neighbor building
+                    // Checking all blocks that are void and have at least one neighbor building
                     if (blockbox.BlockAt(currentPos) == Block.Void && neighbors.ContainsValue(Block.Building)) {
                         foreach (var (relativeNeighborPos, block) in neighbors) {
                             if (block == Block.Building && !blocksInsurfaces.Contains(currentPos + relativeNeighborPos)) {
                                 
                                 // Retrieving adjacent surface blocks with BFS
-                                HashSet<Position3> currentsurface = Bfssurface(currentPos, relativeNeighborPos);
-                                if (currentsurface.Count > 1) {
-                                    surfaces.Add(new Surface(currentsurface, -relativeNeighborPos, blockbox));
-                                    blocksInsurfaces.AddRange(currentsurface);
+                                HashSet<Position3> currentSurface = BfsSurface(currentPos, relativeNeighborPos);
+                                if (currentSurface.Count > 1) {
+                                    surfaces.Add(new Surface(currentSurface, -relativeNeighborPos, blockbox));
+                                    blocksInsurfaces.AddRange(currentSurface);
                                 }
                             }
                         }
@@ -442,7 +458,7 @@ public class GameManager : MonoBehaviour {
         return surfaces;
     }
 
-    private HashSet<Position3> Bfssurface(Position3 startingPos, Position3 normalDirection) {
+    private HashSet<Position3> BfsSurface(Position3 startingPos, Position3 normalDirection) {
         Queue<Position3> queue = new Queue<Position3>();
         HashSet<Position3> currentsurface = new();
         queue.Enqueue(startingPos + normalDirection);

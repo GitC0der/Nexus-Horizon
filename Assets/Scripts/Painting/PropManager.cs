@@ -47,6 +47,11 @@ namespace Painting
         public void RemoveAllProps() {
             _propBox.RemoveAllProps();
         }
+
+        public ActualProp PropAt(Position3 position) => _propBox.PropAt(position); 
+        public bool RemovePropAt(Position3 position) {
+            return _propBox.RemovePropAt(position);
+        }
         
     }
     

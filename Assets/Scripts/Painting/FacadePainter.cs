@@ -35,22 +35,40 @@ namespace Painting
 
         }
 
-        private void DrawWindows() {
-            for (int y = _surface.GetMinCorner3().y + 1; y < _surface.GetMaxCorner3().y; y += 2) {
+        private void Windows_SmallRectangular() {
+            float random = 100*Random.value;
+            if (random < 70) {
+                for (int y = _surface.GetMinCorner3().y + 1; y < _surface.GetMaxCorner3().y; y++) {
+                    Position3 pos = new Position3(_surface.GetMinCorner3().x, y, _surface.GetMinCorner3().z);
+                    for (int i = 1; i < _surface.GetWidth() - 1; i++) {
+                        pos += _surface.GetWidthDirection();
+                        _currentOutput.Add(pos, Slot.Window);
+                        _currentShifts.Add(pos, -WINDOW_SHIFT * _surface.GetNormal().AsVector3());
+                    }
+                }
+            }
+        }
+
+        private void Windows_Lines(bool fullLines, bool onlyWindows, bool businessStyle) {
+            int step = businessStyle ? 1 : 2;
+            for (int y = _surface.GetMinCorner3().y + 1; y < _surface.GetMaxCorner3().y; y += step) {
                 int min;
                 int max;
                 if (_surface.GetConstantAxis() == ConstantAxis.X) {
                     min = _surface.GetMinCorner3().z;
                     max = _surface.GetMaxCorner3().z;
-                } else {
+                }
+                else {
                     min = _surface.GetMinCorner3().x;
                     max = _surface.GetMaxCorner3().x;
                 }
 
                 Position3 pos;
-                Slot prev = (Random.value > 0.5) ? Slot.Window: Slot.Wall;
+                Slot prev = (Random.value > 0.5) ? Slot.Window : Slot.Wall;
                 for (int i = min + 1; i < max; i++) {
-                    pos = _surface.GetConstantAxis() == ConstantAxis.X ? new Position3(_surface.GetFixedCoordinate(), y, i): new Position3(i, y, _surface.GetFixedCoordinate());
+                    pos = _surface.GetConstantAxis() == ConstantAxis.X
+                        ? new Position3(_surface.GetFixedCoordinate(), y, i)
+                        : new Position3(i, y, _surface.GetFixedCoordinate());
                     if (!_surface.IsInBorders(pos) && _surface.Contains(pos)) {
                         Slot current;
                         if (prev == Slot.Wall) {
@@ -60,12 +78,41 @@ namespace Painting
                             current = (Random.value < 0.7) ? Slot.Window : Slot.Wall;
                         }
 
+                        current = onlyWindows ? Slot.Window : current;
                         if (!_surface.IsInBorders(pos)) {
                             _currentOutput.Add(pos, current);
-                            _currentShifts.Add(pos, -WINDOW_SHIFT * _surface.GetNormal().AsVector3());
+                            if (fullLines) {
+                                _currentShifts.Add(pos, -WINDOW_SHIFT * _surface.GetNormal().AsVector3());
+                            } else {
+                                if (current == Slot.Window) {
+                                    _currentShifts.Add(pos, -WINDOW_SHIFT * _surface.GetNormal().AsVector3());
+                                } else {
+                                    _currentShifts.Add(pos, Vector3.zero);
+                                }
+                            }
+                            
                         }
                     }
                 }
+            }
+        }
+        
+        private void DrawWindows() {
+            if (_surface.GetBlocks().Count < 40 && _surface.GetBlocks().Count == _surface.GetWidth() * _surface.GetHeight()) {
+                Windows_SmallRectangular();
+            } else {
+                float rng = 100 * Random.value;
+                bool business = 100 * Random.value < 15 && _surface.GetBlocks().Count < 100;
+                
+                switch (rng) {
+                    case < 60:
+                        Windows_Lines(true, business, business);
+                        break;
+                    default:
+                        Windows_Lines(false, false, false);
+                        break;
+                }
+
             }
         }
 
