@@ -40,6 +40,7 @@ public class GameManager : MonoBehaviour {
     private GameObject voidPrefab;
 
     public Dictionary<Block, GameObject> prefabs;
+    private Dictionary<string, GameObject> _propPrefabs;
 
     private float spawnInterval = 0.001f;
     private float timer = 0.0f;
@@ -88,6 +89,15 @@ public class GameManager : MonoBehaviour {
             { Block.Plaza, plazaPrefab},
             { Block.Utilities , utilitiesPrefab}
         };
+        
+        _propPrefabs = new Dictionary<string, GameObject>();
+
+        GameObject prefabParent = GameObject.Find("Prop Prefabs");
+        if (prefabParent != null) {
+            foreach (Transform child in prefabParent.transform) {
+                _propPrefabs[child.name] = child.gameObject;
+            }
+        }
 
         if (isDeterministic) {
             Random.InitState(9365);
@@ -136,7 +146,9 @@ public class GameManager : MonoBehaviour {
     }
 
     public Blockbox GetBlockbox() => blockbox;
-    
+
+    public List<GameObject> GetPropPrefabs() => _propPrefabs.Values.ToList();
+
     private void Regenerate() {
         foreach (GameObject cube in cubes) {
             Destroy(cube);
