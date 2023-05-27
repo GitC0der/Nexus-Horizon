@@ -59,7 +59,8 @@ public class GameManager : MonoBehaviour {
     private Dictionary<Position3, GameObject> _cubes = new();
     private readonly Dictionary<string, Vector3> _offsets = new Dictionary<string, Vector3> {
         { "lamp", new Vector3(0, 1, 0) },
-        { "plant", new Vector3(0.25f, -0.75f, 0.25f)}
+        { "plant", new Vector3(0.25f, -0.75f, 0.25f)},
+        { "railing", new Vector3(1f, -0.5f, -0.4f)}
     };
 
 
@@ -656,17 +657,17 @@ public class GameManager : MonoBehaviour {
 
     private void GenerateWfcDemoTerrace() {
         // Create the surface
-        int minVal = 20, maxVal = 50, y = 0, range = 30;
+        const int startX = -50, startZ = 0, y = 0, range = 30;
         HashSet<Position3> blocks = new HashSet<Position3>();
-        for (int x = minVal; x < maxVal; x++) {
-            for (int z = minVal; z < maxVal; z++) {
+        for (int x = startX; x < startX + range; x++) {
+            for (int z = startZ; z < startZ + range; z++) {
                 blocks.Add(new Position3(x, y, z));
             }
         }
         Surface surface = new Surface(blocks, Position3.up, blockbox);
         
         // Apply Wave Function Collapse to get an output
-        Position3 origin = new Position3(-50, y, 0);
+        Position3 origin = new Position3(startX, y, startZ);
         char initialChar = '-';
         Position2 initialPos = new Position2(0, 0);
         WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.DemoTerrace, surface.GetWidth(),
@@ -684,20 +685,23 @@ public class GameManager : MonoBehaviour {
                 GameObject prefModel = null;
                 Vector3 offset = new Vector3();
                 switch (c) {
+                    // Lamp
                     case 'L':
                         prefCube = lightPrefab;
                         prefModel = _propManager.lampPrefab;
                         offset = _offsets["lamp"];
                         break;
+                    // Plant
                     case 'P':
                         prefCube = parkPrefab;
                         prefModel = _propManager.plant;
                         offset = _offsets["plant"];
                         break;
-                    case 'S':
+                    // Table
+                    case 'T':
                         prefCube = plazaPrefab;
                         break;
-                    case 'C':
+                    case 'S':
                         prefCube = skybridgePrefab;
                         break;
                     case '-':
@@ -720,26 +724,25 @@ public class GameManager : MonoBehaviour {
                         
                         // Place the railing model
                         var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
-                        offset = new Vector3(1f, -0.5f, -0.4f);
                         var facing = Vector3.forward;
                         var rot = Quaternion.identity;
                         
                         // Find the correct facing and rotation
                         if (x == 0) {
                             facing = Vector3.left;
-                        } else if (x == 29) {
+                        } else if (x == (range - 1)) {
                             facing = Vector3.right;
                             rot = Quaternion.Euler(0f, 180f, 0f);
                         } else if (z == 0) {
                             facing = Vector3.back;
                             rot = Quaternion.Euler(0f, -90f, 0f);
-                        } else if (z == 29) {
+                        } else if (z == (range - 1)) {
                             facing = Vector3.forward;
                             rot = Quaternion.Euler(0f, 90f, 0f);
                         }
 
                         var objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
-                            offset, facing), rot);
+                            _offsets["railing"], facing), rot);
                         _cubes.Add(posModel, objModel);
                     } else {
                         // Place the cube floor to demonstrate the algorithm
@@ -767,12 +770,12 @@ public class GameManager : MonoBehaviour {
     private HashSet<Position3> BfsTerrace(Position3 startingPos) {
         Position3 normalDirection = Position3.up;
         Queue<Position3> queue = new Queue<Position3>();
-        HashSet<Position3> currentsurface = new();
+        HashSet<Position3> currentSurface = new();
         queue.Enqueue(startingPos + normalDirection);
         
         while (queue.Count != 0) {
             Position3 bfsPosition = queue.Dequeue();
-            currentsurface.Add(bfsPosition);
+            currentSurface.Add(bfsPosition);
             
             // Todo: Should not use the blockbox
 
@@ -785,13 +788,13 @@ public class GameManager : MonoBehaviour {
                 if (relativeBfsNeighborPos != normalDirection
                     && relativeBfsNeighborPos != -normalDirection
                     && b == Block.Building
-                    && !currentsurface.Contains(examined) && !queue.Contains(examined)
+                    && !currentSurface.Contains(examined) && !queue.Contains(examined)
                     && !(block1 == Block.Building && block2 == Block.Building)) {
                     queue.Enqueue(examined);
                 }
             }
         }
-        return currentsurface;
+        return currentSurface;
     }
 
     private void SpawnBlocks() {
