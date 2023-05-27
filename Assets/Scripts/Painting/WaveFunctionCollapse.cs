@@ -118,7 +118,7 @@ namespace Painting
             "------X---o---------"
         });
         
-        public static readonly Tile Roof2 = new Tile(new string[] {
+        public static readonly Tile DemoTerrace = new Tile(new string[] {
             "--------------------",
             "------------L-------",
             "----SSSS-------C----",

@@ -58,8 +58,10 @@ public class GameManager : MonoBehaviour {
     private HashSet<Surface> _surfaces = new();
 
     private Dictionary<Position3, GameObject> _cubes = new();
-    
-    
+    private Dictionary<string, Vector3> _offsets = new Dictionary<string, Vector3> {
+        { "lamp", new Vector3(0, 1, 0) }
+    };
+
 
     public GameObject PrefabFrom(Block block) {
         GameObject prefab;
@@ -194,7 +196,7 @@ public class GameManager : MonoBehaviour {
         }
         
         // GenerateOutsideTestsurface();
-        GenerateOutsideTestTerrace();
+        GenerateWfcDemoTerrace();
         
         //var surfaces = FindAllsurfacesTest();
         var surfaces = Findsurfaces();
@@ -659,7 +661,7 @@ public class GameManager : MonoBehaviour {
         }
     }
     
-    private void GenerateOutsideTestTerrace() {
+    private void GenerateWfcDemoTerrace() {
         // Create the surface
         HashSet<Position3> blocks = new HashSet<Position3>();
         for (int x = 20; x < 50; x++) {
@@ -669,107 +671,102 @@ public class GameManager : MonoBehaviour {
         }
         Surface surface = new Surface(blocks, Position3.up, blockbox);
         
+        // Apply Wave Function Collapse to get an output
         Position3 origin = new Position3(-50, 30, 0);
-        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Roof2, surface.GetWidth(),
-            surface.GetHeight(), new Position2(0, 0), 'B');
+        char initialChar = 'L';
+        Position2 initialPos = new Position2(0, 0);
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.DemoTerrace, surface.GetWidth(),
+            surface.GetHeight(), initialPos, initialChar);
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }
 
+        // Use the WFC output to create the scene
         char[][] table = wfc.GetOutput();
         Boolean placed = false;
         for (int x = 0; x < table[0].Length; x++) {
             for (int z = 0; z < table.Length; z++) {
                 char c = table[z][x];
-                GameObject pref = null;
-                GameObject pref2 = null;
+                GameObject prefCube;
+                GameObject prefModel = null;
                 switch (c) {
-                    case 'B':
-                        pref = trainPrefab;
-                        pref2 = _propManager.railingPrefab;
+                    case 'L':
+                        prefCube = lightPrefab;
+                        prefModel = _propManager.lampPrefab;
                         break;
                     case 'S':
-                        pref = parkPrefab;
+                        prefCube = parkPrefab;
                         break;
                     case 'C':
-                        pref = skybridgePrefab;
-                        break;
-                    case 'L':
-                        pref = lightPrefab;
+                        prefCube = skybridgePrefab;
                         break;
                     case '-':
-                        pref = buildingPrefab;
+                        prefCube = buildingPrefab;
                         break;
                     case '@':
-                        pref = plazaPrefab;
+                        prefCube = trainPrefab;
                         break;
                     default:
-                        pref = voidPrefab;
+                        prefCube = voidPrefab;
                         break;
                 }
                 
-                if (pref != null) {
-                    GameObject obj = Instantiate(pref, new Position3(origin.x - x,-10, origin.z - z).AsVector3(), Quaternion.identity);
-                    _cubes.Add(new Position3(origin.x - x,-10, origin.z - z), obj);
-
-                    // if (pref2 != null) {
-                    //     var obj2 = Instantiate(pref2, new Position3(origin.x - x,-9, origin.z - z).AsVector3() + pref2., Quaternion.identity);
-                    //     cubes.Add(obj2);
-                    // }
+                var posCube = new Position3(origin.x - x, -10, origin.z - z);
+                if (prefCube != null) {
+                    // Place the cube floor to demonstrate the algorithm
+                    GameObject objCube = Instantiate(prefCube, posCube.AsVector3(), Quaternion.identity);
+                    _cubes.Add(new Position3(origin.x - x,-10, origin.z - z), objCube);
                     
-                    // To place a prefab:
-                    var pos = new Position3(origin.x - x, -9, origin.z - z).AsVector3();
-                    if (!placed) {
-                        placed = true;
-                        // var position = new Position3(origin.x - x, -10, origin.z - z).AsVector3()
-                        //     + _propManager.Railing().Offset();
+                    // Place corresponding models
+                    var posModel =new Position3(posCube.x, posCube.y + 1, posCube.z);
+                    if (prefModel != null) {
                         // Todo: Find the correct facing
-                        var obj2 = Instantiate(_propManager.railingPrefab, ActualPosRailing(pos, Vector3.left), Quaternion.identity);
-                        _cubes.Add(new Position3(origin.x - x,-9, origin.z - z), obj2);
+                        var objModel = Instantiate(prefModel, ActualPos(posModel.AsVector3(),
+                            _offsets["lamp"], Vector3.left), Quaternion.identity);
+                        _cubes.Add(posModel, objModel);
                     }
-
                 }
             }
         }
+        
+        // Todo: Manually place all railings on the borders
+    }
+    
+    private Vector3 ActualPos(Vector3 pos, Vector3 offset, Vector3 facing) {
+        return pos + offset.x * facing.RotatedLeft() + offset.y * Vector3.up + offset.z * facing;
     }
 
-// Todo: manually adjust the offset to work for the railing
-private Vector3 ActualPosRailing(Vector3 pos, Vector3 facing) {
-    var offset = new Vector3(1, 2, 3);
-    return pos + offset.x * facing.RotatedLeft() + offset.y * Vector3.up + offset.z * facing;
-}
-
-private HashSet<Position3> BfsTerrace(Position3 startingPos) {
-    Position3 normalDirection = Position3.up;
-    Queue<Position3> queue = new Queue<Position3>();
-    HashSet<Position3> currentsurface = new();
-    queue.Enqueue(startingPos + normalDirection);
-    
-    while (queue.Count != 0) {
-        Position3 bfsPosition = queue.Dequeue();
-        currentsurface.Add(bfsPosition);
+    private HashSet<Position3> BfsTerrace(Position3 startingPos) {
+        Position3 normalDirection = Position3.up;
+        Queue<Position3> queue = new Queue<Position3>();
+        HashSet<Position3> currentsurface = new();
+        queue.Enqueue(startingPos + normalDirection);
         
-        // Todo: Should not use the blockbox
-
-        var bfsNeighbors = blockbox.GetRelativeNeighbors(bfsPosition);
-        foreach (var (relativeBfsNeighborPos, b) in bfsNeighbors) {
-            Position3 examined = relativeBfsNeighborPos + bfsPosition;
+        while (queue.Count != 0) {
+            Position3 bfsPosition = queue.Dequeue();
+            currentsurface.Add(bfsPosition);
             
-            Block block1 = blockbox.BlockAt(examined + normalDirection);
-            Block block2 = blockbox.BlockAt(examined - normalDirection);
-            if (relativeBfsNeighborPos != normalDirection
-                && relativeBfsNeighborPos != -normalDirection
-                && b == Block.Building
-                && !currentsurface.Contains(examined) && !queue.Contains(examined)
-                && !(block1 == Block.Building && block2 == Block.Building)) {
-                queue.Enqueue(examined);
+            // Todo: Should not use the blockbox
+
+            var bfsNeighbors = blockbox.GetRelativeNeighbors(bfsPosition);
+            foreach (var (relativeBfsNeighborPos, b) in bfsNeighbors) {
+                Position3 examined = relativeBfsNeighborPos + bfsPosition;
+                
+                Block block1 = blockbox.BlockAt(examined + normalDirection);
+                Block block2 = blockbox.BlockAt(examined - normalDirection);
+                if (relativeBfsNeighborPos != normalDirection
+                    && relativeBfsNeighborPos != -normalDirection
+                    && b == Block.Building
+                    && !currentsurface.Contains(examined) && !queue.Contains(examined)
+                    && !(block1 == Block.Building && block2 == Block.Building)) {
+                    queue.Enqueue(examined);
+                }
             }
         }
+        return currentsurface;
     }
-    return currentsurface;
-}
 
-private void SpawnBlocks() {
+    private void SpawnBlocks() {
         GameObject cubeHolder = GameObject.Find("Cube Holder");
         for (int x = 0; x < blockbox._sizeX; x++) {
             for (int y = 0; y < blockbox._sizeY; y++) {
@@ -859,6 +856,4 @@ private void SpawnBlocks() {
             Destroy(cubeTransform.gameObject);
         }
     }
-
-
 }
