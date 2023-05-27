@@ -11,7 +11,6 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.Serialization;
 using Light = UnityEngine.Light;
 using Random = UnityEngine.Random;
 
@@ -58,8 +57,9 @@ public class GameManager : MonoBehaviour {
     private HashSet<Surface> _surfaces = new();
 
     private Dictionary<Position3, GameObject> _cubes = new();
-    private Dictionary<string, Vector3> _offsets = new Dictionary<string, Vector3> {
-        { "lamp", new Vector3(0, 1, 0) }
+    private readonly Dictionary<string, Vector3> _offsets = new Dictionary<string, Vector3> {
+        { "lamp", new Vector3(0, 1, 0) },
+        { "plant", new Vector3(0.25f, -0.75f, 0.25f)}
     };
 
 
@@ -201,19 +201,6 @@ public class GameManager : MonoBehaviour {
         //var surfaces = FindAllsurfacesTest();
         var surfaces = Findsurfaces();
         _surfaces = surfaces;
-
-        // HashSet<Position3> blocks = new HashSet<Position3>();
-        // for (int x = 0; x < 100; x++) {
-        //     for (int z = 0; z < 100; z++) {
-        //         blocks.Add(new Position3(x, 30, z));
-        //     }
-        // }
-        // Surface surface = new Surface(blocks, Position3.up, blockbox);
-        //
-        // DrawOneSurface(surface);
-        
-
-        
 
         if (true) {
             GenerateAllFacades(surfaces);
@@ -599,7 +586,7 @@ public class GameManager : MonoBehaviour {
         return currentsurface;
     }
 
-    private void GenerateOutsideTestsurface() {
+    private void GenerateOutsideTestSurface() {
         int height = 50;
         int width = 15;
         Position3 origin = new Position3(-height, 30, -width + 70);
@@ -660,20 +647,27 @@ public class GameManager : MonoBehaviour {
             }
         }
     }
-    
+
+    private bool IsAtBorder(Vector3 pos, Vector3 origin, float range) {
+        float epsilon = 0.001f;
+        return Mathf.Abs(origin.x - pos.x) < epsilon || Mathf.Abs((origin.x - (range - 1)) - pos.x) < epsilon
+            || Mathf.Abs(origin.y - pos.z) < epsilon || Mathf.Abs((origin.y - (range - 1)) - pos.z) < epsilon;
+    }
+
     private void GenerateWfcDemoTerrace() {
         // Create the surface
+        int minVal = 20, maxVal = 50, y = 0, range = 30;
         HashSet<Position3> blocks = new HashSet<Position3>();
-        for (int x = 20; x < 50; x++) {
-            for (int z = 20; z < 50; z++) {
-                blocks.Add(new Position3(x, 30, z));
+        for (int x = minVal; x < maxVal; x++) {
+            for (int z = minVal; z < maxVal; z++) {
+                blocks.Add(new Position3(x, y, z));
             }
         }
         Surface surface = new Surface(blocks, Position3.up, blockbox);
         
         // Apply Wave Function Collapse to get an output
-        Position3 origin = new Position3(-50, 30, 0);
-        char initialChar = 'L';
+        Position3 origin = new Position3(-50, y, 0);
+        char initialChar = '-';
         Position2 initialPos = new Position2(0, 0);
         WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.DemoTerrace, surface.GetWidth(),
             surface.GetHeight(), initialPos, initialChar);
@@ -683,19 +677,25 @@ public class GameManager : MonoBehaviour {
 
         // Use the WFC output to create the scene
         char[][] table = wfc.GetOutput();
-        Boolean placed = false;
         for (int x = 0; x < table[0].Length; x++) {
             for (int z = 0; z < table.Length; z++) {
                 char c = table[z][x];
                 GameObject prefCube;
                 GameObject prefModel = null;
+                Vector3 offset = new Vector3();
                 switch (c) {
                     case 'L':
                         prefCube = lightPrefab;
                         prefModel = _propManager.lampPrefab;
+                        offset = _offsets["lamp"];
+                        break;
+                    case 'P':
+                        prefCube = parkPrefab;
+                        prefModel = _propManager.plant;
+                        offset = _offsets["plant"];
                         break;
                     case 'S':
-                        prefCube = parkPrefab;
+                        prefCube = plazaPrefab;
                         break;
                     case 'C':
                         prefCube = skybridgePrefab;
@@ -711,18 +711,25 @@ public class GameManager : MonoBehaviour {
                         break;
                 }
                 
-                var posCube = new Position3(origin.x - x, -10, origin.z - z);
+                var posCube = new Position3(origin.x - x, y, origin.z - z);
                 if (prefCube != null) {
-                    // Place the cube floor to demonstrate the algorithm
-                    GameObject objCube = Instantiate(prefCube, posCube.AsVector3(), Quaternion.identity);
-                    _cubes.Add(new Position3(origin.x - x,-10, origin.z - z), objCube);
-                    
+                    // At border part is a test
+                    if (IsAtBorder(posCube.AsVector3(), origin.AsVector3(), range)) {
+                        GameObject o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
+                        _cubes.Add(new Position3(origin.x - x,y, origin.z - z), o);
+                    } else {
+                        // Place the cube floor to demonstrate the algorithm
+                        GameObject objCube = Instantiate(prefCube, posCube.AsVector3(), Quaternion.identity);
+                        _cubes.Add(new Position3(origin.x - x,y, origin.z - z), objCube);
+
+                    }
+
                     // Place corresponding models
                     var posModel =new Position3(posCube.x, posCube.y + 1, posCube.z);
                     if (prefModel != null) {
                         // Todo: Find the correct facing
                         var objModel = Instantiate(prefModel, ActualPos(posModel.AsVector3(),
-                            _offsets["lamp"], Vector3.left), Quaternion.identity);
+                            offset, Vector3.left), Quaternion.identity);
                         _cubes.Add(posModel, objModel);
                     }
                 }
