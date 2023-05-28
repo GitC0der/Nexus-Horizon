@@ -27,6 +27,12 @@ namespace Painting
             _currentShifts = new Dictionary<Position3, Vector3>();
             _blockBox = blockbox;
             
+            
+            if (surface.GetBlocks().Count == 0 || !blockbox.IsStrictlyInside(surface.GetBlocks().ToList()[0] - 2 * surface.GetNormal()) 
+                                               || !blockbox.IsStrictlyInside(surface.GetBlocks().ToList()[0] + 2 * surface.GetNormal())) {
+                return;
+            }
+            
             // TODO: Adapt this
             if (_surface.GetWidth() > 3) DrawWindows();
             
@@ -94,6 +100,8 @@ namespace Painting
                             }
                             
                         }
+                        
+                        prev = current;
                     }
                 }
             }
@@ -102,18 +110,30 @@ namespace Painting
         private void DrawWindows() {
             if (_surface.GetBlocks().Count < 40 && _surface.GetBlocks().Count == _surface.GetWidth() * _surface.GetHeight()) {
                 Windows_SmallRectangular();
-            } else {
+            } else if (_surface.GetBlocks().Count < 200 && _surface.GetBlocks().Count == _surface.GetWidth() * _surface.GetHeight()) {
                 float rng = 100 * Random.value;
-                bool business = 100 * Random.value < 15 && _surface.GetBlocks().Count < 100;
-                
                 switch (rng) {
-                    case < 60:
-                        Windows_Lines(true, business, business);
+                    case < 40:
+                        Windows_Lines(true, true, true);
+                        break;
+                    case < 80:
+                        Windows_Lines(true, true, false);
                         break;
                     default:
                         Windows_Lines(false, false, false);
                         break;
                 }
+
+            } else {
+                switch (100*Random.value) {
+                    case < 30:
+                        Windows_Lines(false, false, false);
+                        break;
+                    default:
+                        Windows_Lines(false, false, false);
+                        break;
+                }
+                
 
             }
         }

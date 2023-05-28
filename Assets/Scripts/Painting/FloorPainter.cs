@@ -18,12 +18,12 @@ namespace Painting
         private bool _enableLights;
         private FloorTheme _theme;
         
-        public FloorPainter(Surface surface, Blockbox blockbox, PropManager propManager, bool enableLights) {
+        public FloorPainter(Surface surface, Blockbox blockbox, bool enableLights) {
             if (!surface.IsFloor()) throw new ArgumentException("Surface must be a floor!");
 
             _surface = surface;
             _lights = new Dictionary<Vector3, Light>();
-            _propManager = propManager;
+            _propManager = SL.Get<PropManager>();
             _blockbox = blockbox;
             _enableLights = enableLights;
             _theme = ChooseTheme();
@@ -68,8 +68,11 @@ namespace Painting
                 var neighbors = _blockbox.GetRelativeNeighbors(pos + 2 * Position3.up);
                 foreach (var (relativePos, block) in neighbors) {
                     if (block == Block.Building) {
-                        Position3 facing = relativePos;
-                        if (!facings.ContainsKey(pos)) facings.Add(pos, facing);
+                        var shift = _blockbox.ShiftAt(pos);
+                        if (shift.Exist()) {
+                            Position3 facing = relativePos;
+                            if (!facings.ContainsKey(pos)) facings.Add(pos + shift.Get().AsPosition3(), facing);
+                        }
                     }
                 }
             }
@@ -139,33 +142,64 @@ namespace Painting
         }
 
         private void PlaceWaterTowers() {
-            if (100 * Random.value < 30) {
-                Place(_propManager.WaterTower(), 1, 15);
+            int towersCount = 0;
+            switch (_surface.GetBlocks().Count) {
+                case < 40:
+                    towersCount = 1;
+                    break;
+                case < 90:
+                    towersCount = 2;
+                    break;
+                default:
+                    towersCount = 3;
+                    break;
+            }
+
+            for (int i = 0; i < towersCount; i++) {
+                if (100 * Random.value < 30) Place(_propManager.WaterTower(), 1, 15);
             }
         }
 
         private void PlaceLampPosts() {
+            int lampCount = _surface.GetBorderPositions().Count switch {
+                < 20 => 1,
+                < 35 => 2,
+                < 40 => 3,
+                _ => 4
+            };
+
             Border border = _surface.GetBorder(BorderType.None);
-            if (border != null) {
-                if (100 * Random.value < 35) {
-                    var pos = border.GetPositions().ToList()[Random.Range(0, border.GetPositions().Count)];
-                    HashSet<Vector3> listFacing = border.GetDirections()[pos];
-                    foreach (Vector3 facing in listFacing) {
-                        Vector3 propPos = ActualPos(pos.AsVector3(), _propManager.Lamp().Offset(), facing);
-                        var gameObject = _propManager.Instantiate(_propManager.Lamp(), pos, pos.AsVector3() + 2f*Vector3.up, facing, _surface.GetBlocks());
-                        if (!_enableLights && gameObject != null) gameObject.GetComponentInChildren<UnityEngine.Light>().enabled = false;
-                    }
+            for (int i = 0; i < lampCount; i++) {
+                if (border != null) {
+                    if (100 * Random.value < 35) {
+                        var pos = border.GetPositions().ToList()[Random.Range(0, border.GetPositions().Count)];
+                        HashSet<Vector3> listFacing = border.GetDirections()[pos];
+                        foreach (Vector3 facing in listFacing) {
+                            Vector3 propPos = ActualPos(pos.AsVector3(), _propManager.Lamp().Offset(), facing);
+                            var gameObject = _propManager.Instantiate(_propManager.Lamp(), pos, pos.AsVector3() + 2f*Vector3.up, facing, _surface.GetBlocks());
+                            if (!_enableLights && gameObject != null) gameObject.GetComponentInChildren<UnityEngine.Light>().enabled = false;
+                        }
                         
+                    }
                 }
             }
+            
+            
+            
         }
 
-        private int Place(PropPrefab prefab, int countTarget, int maxIterations) {
+        private int Place(PropPrefab prefab, int countTarget, int maxIterations, bool isInBorders = false) {
             int placedCount = 0;
             int iterationsCount = 0;
             do {
                 ++iterationsCount;
-                Position3 position = _surface.GetBlocks().ToList()[Random.Range(0, _surface.GetBlocks().Count)];
+                Position3 position;
+                if (isInBorders) {
+                    position = _surface.GetBlocks().ToList()[Random.Range(0, _surface.GetBlocks().Count)];
+                } else {
+                    position = _surface.GetBorderPositions().ToList()[Random.Range(0, _surface.GetBorderPositions().Count)];
+                }
+                
                 Vector3 facing = RandomFloorOrientation();
                 Vector3 newPos = ActualPos(position.AsVector3(), prefab.Offset(), facing);
                 var gameObject = _propManager.Instantiate(prefab, position, newPos, facing, _surface.GetBlocks());
@@ -203,16 +237,33 @@ namespace Painting
                 case < 35:
                     Place(_propManager.LargeCoolingUnit(), 1, 10);
                     break;
-                case < 90:
+                case < 60:
                     Place(_propManager.LargeCoolingUnit(), 2, 20);
                     break;
+                case < 100:
+                    Place(_propManager.LargeCoolingUnit(), 4, 20);
+                    break;
                 default:
-                    Place(_propManager.LargeCoolingUnit(), 3, 20);
+                    Place(_propManager.LargeCoolingUnit(), 4, 20);
                     break;
             }
         }
 
         private void PlaceLongAC() {
+            switch (_surface.GetBlocks().Count) {
+                case < 20:
+                    break;
+                case < 40:
+                    Place(_propManager.LongAirConditioning(), 1, 20);
+                    break;
+                case < 70:
+                    Place(_propManager.LongAirConditioning(), 2, 20);
+                    break;
+                default:
+                    Place(_propManager.LongAirConditioning(), 3, 20);
+                    break;
+            }
+            /*
             if (_surface.GetBlocks().Count > 20) {
                 int iterationsCount = 0;
                 do {
@@ -231,6 +282,7 @@ namespace Painting
                     }
                 } while (iterationsCount < 20);
             }
+            */
         }
 
         private Vector3 ActualPos(Vector3 pos, Vector3 offset, Vector3 facing) {

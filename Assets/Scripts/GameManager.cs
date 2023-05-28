@@ -366,7 +366,8 @@ public class GameManager : MonoBehaviour {
     private void GenerateAllFloors(HashSet<Surface> allSurfaces) {
         foreach (Surface surface in allSurfaces) {
             if (surface.IsFloor() && surface.GetBlocks().Count > 2) {
-                FloorPainter fp = new FloorPainter(surface, blockbox, _propManager, useLights);
+                FloorPainter fp = new FloorPainter(surface, blockbox, useLights);
+                /*
                 if (useShader) {
                     var lights = fp.GetLights();
                     foreach (var (pos, light) in lights) {
@@ -375,6 +376,7 @@ public class GameManager : MonoBehaviour {
                         lightObject.GetComponent<Light>().range = light.GetRadius();
                     } 
                 }
+                */
                 
             }
         }
@@ -503,7 +505,9 @@ public class GameManager : MonoBehaviour {
                                     surfaces.Add(new Surface(currentSurface, -relativeNeighborPos, blockbox));
                                     blocksInsurfaces.AddRange(currentSurface);
                                 }
+                                
                             }
+                            
                         }
                     }
                 }

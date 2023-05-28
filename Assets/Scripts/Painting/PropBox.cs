@@ -115,6 +115,7 @@ namespace Painting
                         }
                         Position3 newPos = pos + new Position3(displ);
                         
+                        
                         // TODO: This works ONLY for floors. Not facades!
                         if (!surfaceBlocks.Contains(new Position3(newPos.x, pos.y, newPos.z)) ||
                             (_blockbox.IsInsideBox(newPos + Position3.up) &&
@@ -122,6 +123,12 @@ namespace Painting
                             return new HashSet<Position3>();
                         }
                         
+                        if (prefab.IsClearanceHard() && (_blockbox.IsDoor(newPos + Position3.left)
+                                                         || _blockbox.IsDoor(newPos + Position3.right)
+                                                         || _blockbox.IsDoor(newPos + Position3.forward)
+                                                         || _blockbox.IsDoor(newPos + Position3.back))) {
+                            return new HashSet<Position3>();
+                        }
                         
                         
                         positions.Add(newPos);
@@ -129,7 +136,7 @@ namespace Painting
                 }
             }
             
-            // TODO: Check for doors here
+            
 
             if (prefab.SizeX() == 0 && prefab.SizeY() == 0 && prefab.SizeZ() == 0) positions.Add(pos);
 

@@ -87,9 +87,7 @@ namespace Prepping
         }
 
         public Optional<Vector3> ShiftAt(Position3 position) {
-            if (!IsInsideBox(position)) return new Optional<Vector3>();
-
-            return new Optional<Vector3>(_shifts[position.x][position.y][position.z]);
+            return !IsInsideBox(position) ? new Optional<Vector3>() : new Optional<Vector3>(_shifts[position.x][position.y][position.z]);
         }
         
         private bool IsInside(int value, int min, int max) {

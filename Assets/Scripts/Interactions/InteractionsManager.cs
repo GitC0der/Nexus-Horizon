@@ -91,9 +91,10 @@ namespace Interactions
                     }
                     gameManager.ReplaceBlockAt(position, Vector3.zero, Block.Building);
 
-                    if (gameManager.GetBlockbox().GetDoorsLeadingTo(surface.GetBorderPositions()).Count == 0) {
-                        Surface floor = gameManager.FindSurfaceBelow(bottom + surface.GetNormal());
-                        gameManager.RemoveAllPropsOn(floor);
+                    Surface frontFloor = gameManager.FindSurfaceBelow(bottom + surface.GetNormal());
+                    if (frontFloor != null && gameManager.GetBlockbox().GetDoorsLeadingTo(frontFloor.GetBorderPositions()).Count == 0) {
+                        gameManager.RemoveAllPropsOn(frontFloor);
+                        FloorPainter painter = new FloorPainter(frontFloor, gameManager.GetBlockbox(), gameManager.useLights);
                     }
                     
                     /*
@@ -109,6 +110,8 @@ namespace Interactions
                 case "Building":
                     Position3? doorPos = null;
                     surface = gameManager.GetSurfaceOn(position);
+                    
+                    // CLicking on facades
                     if (surface != null && surface.IsFacade() && !surface.GetBorderPositions().Contains(position)) {
                         
                         // Removing the doors
@@ -132,11 +135,13 @@ namespace Interactions
                         
                         // Creating a new terrace
                         Position3? newDoorPos = null;
-                        foreach (Position3 surfacePos in surface.GetBlocks()) {
-                            if (gameManager.GetBlockbox().IsDoor(surfacePos)) newDoorPos = surfacePos;
+                        if (gameManager.GetBlockbox().GetDoorsLeadingTo(surface.GetBorderPositions()).Count == 1) {
+                            foreach (Position3 surfacePos in surface.GetBlocks()) {
+                                if (gameManager.GetBlockbox().IsDoor(surfacePos)) newDoorPos = surfacePos;
+                            }
                         }
-                        
-                        
+
+
                         if (newDoorPos != null) {
                             Surface floor = gameManager.FindSurfaceBelow(newDoorPos.Value + surface.GetNormal());
                             if (floor == null) {
@@ -147,17 +152,14 @@ namespace Interactions
                             }
                             gameManager.RemoveAllPropsOn(floor);
 
-                            if (floor != null) {
-                                var floorPainter = new FloorPainter(floor, gameManager.GetBlockbox(), SL.Get<PropManager>(), gameManager.useLights);
-                            }
+                            FloorPainter floorPainter = new FloorPainter(floor, gameManager.GetBlockbox(), gameManager.useLights);
                         }
                         
-                        
+                        // Clicking on floors
                     } else if (surface != null && surface.IsFloor()) {
                         Surface floor = gameManager.FindSurfaceBelow(position + Position3.up);
                         gameManager.RemoveAllPropsOn(floor);
-
-                        FloorPainter painter = new FloorPainter(surface, gameManager.GetBlockbox(), SL.Get<PropManager>(), gameManager.useLights);
+                        FloorPainter painter = new FloorPainter(surface, gameManager.GetBlockbox(), gameManager.useLights);
                         
                     }
                     
