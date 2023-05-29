@@ -655,7 +655,7 @@ public class GameManager : MonoBehaviour {
             || Mathf.Abs(origin.y - pos.z) < epsilon || Mathf.Abs((origin.y - (range - 1)) - pos.z) < epsilon;
     }
 
-    private void GenerateWfcDemoTerrace() {
+      private void GenerateWfcDemoTerrace() {
         // Create the surface
         const int startX = -20, startZ = 0, y = 0, range = 30;
         HashSet<Position3> blocks = new HashSet<Position3>();
@@ -678,12 +678,15 @@ public class GameManager : MonoBehaviour {
 
         // Use the WFC output to create the scene
         char[][] table = wfc.GetOutput();
+        List<Position3> tablePositions = new List<Position3>();
         for (int x = startX; x < startX + table[0].Length; x++) {
             for (int z = startZ; z < startZ + table.Length; z++) {
                 char c = table[z - startZ][x - startX];
                 GameObject prefCube;
                 GameObject prefModel = null;
                 Vector3 offset = new Vector3();
+                var posCube = new Position3(origin.x - x + startX, y, origin.z - z + startZ);
+                var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
                 switch (c) {
                     // Lamp
                     case 'L':
@@ -700,6 +703,7 @@ public class GameManager : MonoBehaviour {
                     // Table
                     case 'T':
                         prefCube = plazaPrefab;
+                        tablePositions.Add(posModel);
                         break;
                     case 'S':
                         prefCube = skybridgePrefab;
@@ -715,8 +719,6 @@ public class GameManager : MonoBehaviour {
                         break;
                 }
                 
-                var posCube = new Position3(origin.x - x + startX, y, origin.z - z + startZ);
-                var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
                 var facings = new[] { Vector3.left, Vector3.right, Vector3.back, Vector3.forward };
                 var rots = new[] { Quaternion.identity, Quaternion.Euler(0f, 180f, 0f),
                     Quaternion.Euler(0f, -90f, 0f), Quaternion.Euler(0f, 90f, 0f) };
@@ -754,6 +756,39 @@ public class GameManager : MonoBehaviour {
                         _cubes.Add(posModel, objModel);
                     }
                 }
+            }
+        }
+        
+        HashSet<HashSet<Position3>> adjacentPositionSets = new HashSet<HashSet<Position3>>();
+        HashSet<Position3> visitedPositions = new HashSet<Position3>();
+
+        foreach (Position3 pos1 in tablePositions) {
+            if (!visitedPositions.Contains(pos1)) {
+                HashSet<Position3> adjacentPositions = new HashSet<Position3>();
+                adjacentPositions.Add(pos1);
+
+                foreach (Position3 pos2 in tablePositions) {
+                    if (pos1 != pos2 && (Math.Abs(pos1.x - pos2.x)) <= 1 && Math.Abs(pos1.z - pos2.z) <= 1) {
+                        adjacentPositions.Add(pos2);
+                        visitedPositions.Add(pos2);
+                    }
+                }
+
+                // Skip the default case where only pos1 is in adjacentPositions
+                if (adjacentPositions.Count > 1) {
+                    adjacentPositionSets.Add(adjacentPositions);
+                }
+            }
+        }
+
+        // Place the tables
+        foreach (var adjacentSet in adjacentPositionSets) {
+            if (adjacentSet.Count > 0) {
+                Position3 pos = adjacentSet.ToList()[0];
+                var offset = new Vector3(0.3f, -0.5f, 0f);
+                var objModel = Instantiate(_propManager.tableSetPrefab, ActualPos(pos.AsVector3(),
+                    offset, Vector3.left), Quaternion.identity);
+                _cubes.Add(pos, objModel);
             }
         }
         
