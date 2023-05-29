@@ -9,14 +9,14 @@ namespace DefaultNamespace
     {
         private void Start()
         {
-            WaveFunctionCollapse wfc = new(TextureInputs.MetalDark, 64, 64, new Position2(30, 30), 'W', 6);
+            WaveFunctionCollapse wfc = new(TextureInputs.Table, 64, 64, new Position2(30, 30), '-', 6);
             while (!wfc.IsDone())
             {
                 wfc.GenerateNextSlot();
             }
             char[][] table = wfc.GetOutput();
 
-            string outputPath = "./Assets/Textures/metalDark.png";
+            string outputPath = "./Assets/Textures/table.png";
 
             int width = table[0].Length;
             int height = table.Length;
@@ -29,27 +29,19 @@ namespace DefaultNamespace
                 {
                     char c = table[y][x];
                     Color32 color = UnityEngine.Color.blue;
-                    if (c == 'D')
+                    if (c == '-')
                     {
-                        color = new UnityEngine.Color(0.145f, 0.145f, 0.145f, 1f);
+                        color = new UnityEngine.Color(0.694f, 0.694f, 0.694f, 1f);
                         texture.SetPixel(x, y, color);
                     }
                     else if (c == 'W')
                     {
-                        color = new UnityEngine.Color(0.784f, 0.784f, 0.784f, 1f);
+                        color = new UnityEngine.Color(0.9f, 0.9f, 0.9f, 1f);
                         texture.SetPixel(x, y, color);
-                    } else if (c == '-')
-                    {
-                      color = new UnityEngine.Color(0.466f, 0.466f, 0.466f, 1f);
-                      texture.SetPixel(x, y, color);
-                    } else if (c == 'D')
-                    {
-                      color = new UnityEngine.Color(0.74f, 0.74f, 0.74f, 1f);
-                      texture.SetPixel(x, y, color);
                     }
                     else
                     {
-                      color = new UnityEngine.Color(0.482f, 0.482f, 0.482f, 1f);
+                        color = new UnityEngine.Color(0.694f, 0.694f, 0.694f, 1f);
                         texture.SetPixel(x, y, color);
 
                     }
