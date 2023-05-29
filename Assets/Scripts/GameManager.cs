@@ -55,12 +55,13 @@ public class GameManager : MonoBehaviour {
         { "plant", new Vector3(0.25f, -0.75f, 0.25f)},
         { "railing", new Vector3(-0.4f, -0.5f, -1f)},
         { "table", new Vector3(0.5f, -0.5f, 0.5f)},
-        { "couch", new Vector3(1f, -0.5f, 2f)},
     };
     
     private readonly Vector3[] _couchOffsets = new Vector3[] {
-        new Vector3(1f, -0.5f, 2f),
-        new Vector3(0f, -0.5f, 0f)
+        new (1f, -0.5f, 2f),
+        new (0f, -0.5f, 0f),
+        new (0f, -0.5f, 2f),
+        new (1f, -0.5f, 0f)
     };
 
     public GameObject PrefabFrom(Block block) {
@@ -671,6 +672,10 @@ public class GameManager : MonoBehaviour {
         char[][] table = wfc.GetOutput();
         List<Position3> tablePositions = new List<Position3>();
         List<Position3> couchPositions = new List<Position3>();
+        List<Position3> couchPositions2 = new List<Position3>();
+        var facings = new[] { Vector3.left, Vector3.right, Vector3.back, Vector3.forward };
+        var rots = new[] { Quaternion.identity, Quaternion.Euler(0f, 180f, 0f),
+            Quaternion.Euler(0f, -90f, 0f), Quaternion.Euler(0f, 90f, 0f) };
         for (int x = startX; x < startX + table[0].Length; x++) {
             for (int z = startZ; z < startZ + table.Length; z++) {
                 char c = table[z - startZ][x - startX];
@@ -697,10 +702,15 @@ public class GameManager : MonoBehaviour {
                         prefCube = plazaPrefab;
                         tablePositions.Add(posModel);
                         break;
-                    // Couch
+                    // Couch (two directions)
                     case 'C':
                         prefCube = skybridgePrefab;
                         couchPositions.Add(posModel);
+                        break;
+                    // Couch (the two other directions)
+                    case 'S':
+                        prefCube = skybridgePrefab;
+                        couchPositions2.Add(posModel);
                         break;
                     case '-':
                         prefCube = buildingPrefab;
@@ -712,11 +722,7 @@ public class GameManager : MonoBehaviour {
                         prefCube = voidPrefab;
                         break;
                 }
-                
-                var facings = new[] { Vector3.left, Vector3.right, Vector3.back, Vector3.forward };
-                var rots = new[] { Quaternion.identity, Quaternion.Euler(0f, 180f, 0f),
-                    Quaternion.Euler(0f, -90f, 0f), Quaternion.Euler(0f, 90f, 0f) };
-                
+
                 int rand = new System.Random().Next(facings.Length);
                 var facing = facings[rand];
                 var rot = rots[rand];
@@ -765,18 +771,30 @@ public class GameManager : MonoBehaviour {
             }
         }
         
-        var couchFacings = new[] { Vector3.left, Vector3.right };
-        var couchRots = new[] { Quaternion.identity, Quaternion.Euler(0f, 180f, 0f), };
-
-        // Place the couches
+        // Place the couches (two orientations)
         adjacentPositionSets = KeepDistinctAdjacentPositions(couchPositions, 2);
         foreach (var adjacentSet in adjacentPositionSets) {
             if (adjacentSet.Count > 0) {
-                var rand = new System.Random().Next(couchFacings.Length);
-                var facing = couchFacings[rand];
-                var rot = couchRots[rand];
+                var rand = new System.Random().Next(facings.Length - 2);
+                var facing = facings[rand];
+                var rot = rots[rand];
                 Position3 pos = adjacentSet.ToList()[0];
                 var offset = _couchOffsets[rand];
+                var objModel = Instantiate(_propManager.couch1, ActualPos(pos.AsVector3(),
+                    offset, facing), rot);
+                _cubes.Add(pos, objModel);
+            }
+        }
+        
+        // Place the couches (two other orientations)
+        adjacentPositionSets = KeepDistinctAdjacentPositions(couchPositions2, 2);
+        foreach (var adjacentSet in adjacentPositionSets) {
+            if (adjacentSet.Count > 0) {
+                var rand = new System.Random().Next(facings.Length - 2);
+                var facing = facings[rand + 2];
+                var rot = rots[rand + 2];
+                Position3 pos = adjacentSet.ToList()[0];
+                var offset = _couchOffsets[rand + 2];
                 var objModel = Instantiate(_propManager.couch1, ActualPos(pos.AsVector3(),
                     offset, facing), rot);
                 _cubes.Add(pos, objModel);
