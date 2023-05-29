@@ -110,7 +110,7 @@ namespace Painting
         private void DrawWindows() {
             if (_surface.GetBlocks().Count < 40 && _surface.GetBlocks().Count == _surface.GetWidth() * _surface.GetHeight()) {
                 Windows_SmallRectangular();
-            } else if (_surface.GetBlocks().Count < 200 && _surface.GetBlocks().Count == _surface.GetWidth() * _surface.GetHeight()) {
+            } else if (_surface.GetBlocks().Count == _surface.GetWidth() * _surface.GetHeight()) {
                 float rng = 100 * Random.value;
                 switch (rng) {
                     case < 40:
@@ -127,10 +127,13 @@ namespace Painting
             } else {
                 switch (100*Random.value) {
                     case < 30:
+                        Windows_Lines(true, false, false);
+                        break;
+                    case < 80:
                         Windows_Lines(false, false, false);
                         break;
                     default:
-                        Windows_Lines(false, false, false);
+                        Windows_Lines(true, true, false);
                         break;
                 }
                 
