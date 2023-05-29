@@ -75,31 +75,31 @@ public class GameManager : MonoBehaviour {
     public Position3 CurrentPos() => new Position3(x, y, z);
     
     // Use this for initialisation
-    void Start () {
+    void Start() {
         blockbox = new Blockbox(50, 80, 50);
-        
+
         _propManager = GetComponentInChildren<PropManager>();
         _propManager.Initialize(blockbox);
 
         _interactionsManager = GetComponentInChildren<InteractionsManager>();
         _interactionsManager.Initialize();
-        
+
         // Stored there for easy access in any
         SL.RegisterService(this);
         SL.RegisterService(_propManager);
         SL.RegisterService(_interactionsManager);
-        
+
         prefabs = new Dictionary<Block, GameObject> {
             { Block.Building, buildingPrefab },
             { Block.Park, parkPrefab },
             { Block.Void, voidPrefab },
-            { Block.Window , skybridgePrefab},
-            { Block.Door , trainPrefab},
-            { Block.Walkway, walkwayPrefab},
-            { Block.Plaza, plazaPrefab},
-            { Block.Utilities , utilitiesPrefab}
+            { Block.Window, skybridgePrefab },
+            { Block.Door, trainPrefab },
+            { Block.Walkway, walkwayPrefab },
+            { Block.Plaza, plazaPrefab },
+            { Block.Utilities, utilitiesPrefab }
         };
-        
+
         _propPrefabs = new Dictionary<string, GameObject>();
 
         GameObject prefabParent = GameObject.Find("Prop Prefabs");
@@ -112,19 +112,21 @@ public class GameManager : MonoBehaviour {
         if (_seed > 0) {
             Random.InitState(_seed);
         }
-        
+
         isRunning = true;
 
         if (useShader) {
             GetComponentInChildren<ShaderController>().EnableShader();
         }
-        
+
         if (instantGeneration) {
             Regenerate();
         }
-        
+
     }
     
+    
+
     // Update is called once per frame
     void Update()
     {
@@ -152,9 +154,9 @@ public class GameManager : MonoBehaviour {
         if (!instantGeneration) {
             //GenerateBlock();
         }
-        
-    }
 
+    }
+    
     public Blockbox GetBlockbox() => blockbox;
 
     public List<GameObject> GetPropPrefabs() => _propPrefabs.Values.ToList();
