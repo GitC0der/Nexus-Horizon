@@ -15,7 +15,7 @@ namespace DefaultNamespace
         void Start() {
             if (Enabled) {
 
-                var generator = new WaveFunctionCollapse(WaveFunctionCollapse.Facade1, 30, 50, new Position2(1,1), 'X');
+                var generator = new WaveFunctionCollapse(WaveFunctionCollapse.Facade1, 30, 50, new Position2(1,1), 'X', 3);
                 int slotsCOunt = 1;
                 while (!generator.IsDone()) {
                     if (slotsCOunt == 16) {

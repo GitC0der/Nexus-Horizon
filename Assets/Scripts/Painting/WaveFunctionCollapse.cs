@@ -13,7 +13,6 @@ namespace Painting
     {
         public const char EMPTY_CHAR = '?';
         public const char ERROR_CHAR = '@';
-        public const int DIMENSION = 3;
 
         private const int ENTROPY_COMPLETE = int.MaxValue;
         private const bool IS_BORDERLESS = false;
@@ -21,6 +20,7 @@ namespace Painting
         private bool isDone;
         private PriorityQueue<Position2> queue;
         private HashSet<char> inputChars;
+        private readonly int _dimension;
 
         private Tile output;
         private Dictionary<Position2, HashSet<Tile>> possibilities;
@@ -157,14 +157,16 @@ namespace Painting
         /// <param name="outputHeight">The desired height</param>
         /// <param name="initPos">The position of the first character to be placed</param>
         /// <param name="initChar">The first character to be placed</param>
-        public WaveFunctionCollapse(Tile inputMap, int outputWidth, int outputHeight, Position2 initPos, char initChar) {
+        /// <param name="dimension">The dimension of the tiles</param>
+        public WaveFunctionCollapse(Tile inputMap, int outputWidth, int outputHeight, Position2 initPos, char initChar, int dimension) {
+            _dimension = dimension;
             tiles = new HashSet<Tile>();
-            for (int row = 0; row <= inputMap.Width() - DIMENSION; row++) {
-                for (int col = 0; col <= inputMap.Height() - DIMENSION; col++) {
-                    tiles.Add(inputMap.GetSubTile(new Position2(col, row), new Position2(col + DIMENSION - 1, row + DIMENSION - 1), false));
+            for (int row = 0; row <= inputMap.Width() - _dimension; row++) {
+                for (int col = 0; col <= inputMap.Height() - _dimension; col++) {
+                    tiles.Add(inputMap.GetSubTile(new Position2(col, row), new Position2(col + _dimension - 1, row + _dimension - 1), false));
                 }
             }
-
+            
             inputChars = inputMap.GetChars();
 
             Initialize(outputWidth, outputHeight, initPos, initChar);
@@ -195,7 +197,7 @@ namespace Painting
             for (int x = 0; x < outputWidth; x++) {
                 for (int y = 0; y < outputHeight; y++) {
                     Position2 position = new Position2(x, y);
-                    if ( x < outputWidth - DIMENSION + 1 && y < outputHeight - DIMENSION + 1) {
+                    if ( x < outputWidth - _dimension + 1 && y < outputHeight - _dimension + 1) {
                         possibilities.Add(position, new HashSet<Tile>(tiles));
                     }
                     queue.Enqueue(position, inputChars.Count);
@@ -287,7 +289,7 @@ namespace Painting
 
         // TODO: Investigate possibility of optimization by not copying the tiles but simply returning the position of the char
         private List<char> PossibleChars(Position2 p) {
-            HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, DIMENSION);
+            HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, _dimension);
             HashSet<HashSet<char>> listOfPossibleChars = new HashSet<HashSet<char>>();
             
             foreach (Position2 position in positions) {
@@ -327,12 +329,12 @@ namespace Painting
 
         private void SetCharAndUpdateAll(Position2 p, char newChar) {
             SetCharAndUpdatePossibilities(p, newChar);
-            UpdateEntropies(p, DIMENSION);
+            UpdateEntropies(p, _dimension);
         }
         
         private void SetCharAndUpdatePossibilities(Position2 p, char newChar) {
             output.SetChar(p, newChar);
-            HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, DIMENSION);
+            HashSet<Position2> positions = output.PositionsOfSubtilesContaining(p, _dimension);
 
             // Using a HashSet instead of a List for removedTiles
             HashSet<Tile> removedTiles = new HashSet<Tile>();
@@ -568,11 +570,11 @@ namespace Painting
                 return positions;
             }
 
-            public HashSet<Tile> GetAllSubtiles() {
+            public HashSet<Tile> GetAllSubtiles(int dimension) {
                 HashSet<Tile> tiles = new HashSet<Tile>();
-                for (int row = 0; row <= width - DIMENSION; row++) {
-                    for (int col = 0; col <= height - DIMENSION; col++) {
-                        tiles.Add(GetSubTile(new Position2(col, row), new Position2(col + DIMENSION - 1, row + DIMENSION - 1), false));
+                for (int row = 0; row <= width - dimension; row++) {
+                    for (int col = 0; col <= height - dimension; col++) {
+                        tiles.Add(GetSubTile(new Position2(col, row), new Position2(col + dimension - 1, row + dimension - 1), false));
                     }
                 }
 

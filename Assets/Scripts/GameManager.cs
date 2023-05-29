@@ -417,7 +417,7 @@ public class GameManager : MonoBehaviour {
 
     private void DrawOneSurface(Surface surface) {
         WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Roof1, surface.GetWidth(),
-            surface.GetHeight(), new Position2(0,0), 'B');
+            surface.GetHeight(), new Position2(0,0), 'B', 3);
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }
@@ -596,7 +596,7 @@ public class GameManager : MonoBehaviour {
         int height = 50;
         int width = 20;
         Position3 origin = new Position3(-height - initX, 30, -width + height);
-        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade2, width, height, new Position2(2, 28), 'D');
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade2, width, height, new Position2(2, 28), 'D', 3);
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }
@@ -671,7 +671,7 @@ public class GameManager : MonoBehaviour {
         char initialChar = '-';
         Position2 initialPos = new Position2(1, 1);
         WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.DemoTerrace, surface.GetWidth(),
-            surface.GetHeight(), initialPos, initialChar);
+            surface.GetHeight(), initialPos, initialChar, 3);
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }

@@ -55,6 +55,8 @@ namespace Prepping
                     }
                 } 
             }
+
+            _doorPositions = new HashSet<Position3>();
         }
 
         public void SetDoor(Position3[] positions) {
