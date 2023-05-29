@@ -657,7 +657,7 @@ public class GameManager : MonoBehaviour {
 
     private void GenerateWfcDemoTerrace() {
         // Create the surface
-        const int startX = -50, startZ = 0, y = 0, range = 30;
+        const int startX = -20, startZ = 0, y = 0, range = 30;
         HashSet<Position3> blocks = new HashSet<Position3>();
         for (int x = startX; x < startX + range; x++) {
             for (int z = startZ; z < startZ + range; z++) {
@@ -678,9 +678,9 @@ public class GameManager : MonoBehaviour {
 
         // Use the WFC output to create the scene
         char[][] table = wfc.GetOutput();
-        for (int x = 0; x < table[0].Length; x++) {
-            for (int z = 0; z < table.Length; z++) {
-                char c = table[z][x];
+        for (int x = startX; x < startX + table[0].Length; x++) {
+            for (int z = startZ; z < startZ + table.Length; z++) {
+                char c = table[z - startZ][x - startX];
                 GameObject prefCube;
                 GameObject prefModel = null;
                 Vector3 offset = new Vector3();
@@ -715,12 +715,12 @@ public class GameManager : MonoBehaviour {
                         break;
                 }
                 
-                var posCube = new Position3(origin.x - x, y, origin.z - z);
+                var posCube = new Position3(origin.x - x + startX, y, origin.z - z + startZ);
                 if (prefCube != null) {
                     // If at the border, manually override the WFC algorithm to place railings
                     if (IsAtBorder(posCube.AsVector3(), origin.AsVector3(), range)) {
                         GameObject o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
-                        _cubes.Add(new Position3(origin.x - x,y, origin.z - z), o);
+                        _cubes.Add(posCube, o);
                         
                         // Place the railing model
                         var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
@@ -728,26 +728,26 @@ public class GameManager : MonoBehaviour {
                         var rot = Quaternion.identity;
                         
                         // Find the correct facing and rotation
-                        if (x == 0) {
+                        if (x == startX) {
                             facing = Vector3.left;
-                        } else if (x == (range - 1)) {
+                        } else if (x == startX + (range - 1)) {
                             facing = Vector3.right;
                             rot = Quaternion.Euler(0f, 180f, 0f);
-                        } else if (z == 0) {
+                        } else if (z == startZ) {
                             facing = Vector3.back;
                             rot = Quaternion.Euler(0f, -90f, 0f);
-                        } else if (z == (range - 1)) {
+                        } else if (z == startZ + (range - 1)) {
                             facing = Vector3.forward;
                             rot = Quaternion.Euler(0f, 90f, 0f);
                         }
-
+                        
                         var objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
                             _offsets["railing"], facing), rot);
                         _cubes.Add(posModel, objModel);
                     } else {
                         // Place the cube floor to demonstrate the algorithm
                         GameObject objCube = Instantiate(prefCube, posCube.AsVector3(), Quaternion.identity);
-                        _cubes.Add(new Position3(origin.x - x,y, origin.z - z), objCube);
+                        _cubes.Add(posCube, objCube);
 
                         // Place corresponding models
                         var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
