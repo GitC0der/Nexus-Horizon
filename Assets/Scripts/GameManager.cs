@@ -196,7 +196,7 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        // GenerateOutsideTestsurface();
+        GenerateWfcDemoFacade();
         GenerateWfcDemoTerrace();
         
         //var surfaces = FindAllsurfacesTest();
@@ -587,11 +587,12 @@ public class GameManager : MonoBehaviour {
         return currentsurface;
     }
 
-    private void GenerateOutsideTestSurface() {
+    private void GenerateWfcDemoFacade() {
+        int initX = 20;
         int height = 50;
-        int width = 15;
-        Position3 origin = new Position3(-height, 30, -width + 70);
-        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade2, width, height, new Position2(2, 48), 'D');
+        int width = 20;
+        Position3 origin = new Position3(-height - initX, 30, -width + height);
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade2, width, height, new Position2(2, 28), 'D');
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }
@@ -630,12 +631,7 @@ public class GameManager : MonoBehaviour {
                         break;
                     case '@':
                         // TODO: Remove this
-                        //pref = buildingPrefab;
-                        pref = plazaPrefab;
-                        isBalcony = false;
-                        break;
-                    default:
-                        isBalcony = false;
+                        pref = utilitiesPrefab;
                         break;
                 }
 
