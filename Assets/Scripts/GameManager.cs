@@ -54,7 +54,13 @@ public class GameManager : MonoBehaviour {
         { "lamp", new Vector3(0, 1, 0) },
         { "plant", new Vector3(0.25f, -0.75f, 0.25f)},
         { "railing", new Vector3(-0.4f, -0.5f, -1f)},
-        { "couch", new Vector3(0.5f, -0.5f, 0.5f)}
+        { "table", new Vector3(0.5f, -0.5f, 0.5f)},
+        { "couch", new Vector3(1f, -0.5f, 2f)},
+    };
+    
+    private readonly Vector3[] _couchOffsets = new Vector3[] {
+        new Vector3(1f, -0.5f, 2f),
+        new Vector3(0f, -0.5f, 0f)
     };
 
     public GameObject PrefabFrom(Block block) {
@@ -664,6 +670,7 @@ public class GameManager : MonoBehaviour {
         // Use the WFC output to create the scene
         char[][] table = wfc.GetOutput();
         List<Position3> tablePositions = new List<Position3>();
+        List<Position3> couchPositions = new List<Position3>();
         for (int x = startX; x < startX + table[0].Length; x++) {
             for (int z = startZ; z < startZ + table.Length; z++) {
                 char c = table[z - startZ][x - startX];
@@ -690,8 +697,10 @@ public class GameManager : MonoBehaviour {
                         prefCube = plazaPrefab;
                         tablePositions.Add(posModel);
                         break;
+                    // Couch
                     case 'C':
                         prefCube = skybridgePrefab;
+                        couchPositions.Add(posModel);
                         break;
                     case '-':
                         prefCube = buildingPrefab;
@@ -745,13 +754,31 @@ public class GameManager : MonoBehaviour {
         }
         
         // Place the tables
-        var adjacentPositionSets = keepDistinctAdjacentPositions(tablePositions);
+        var adjacentPositionSets = KeepDistinctAdjacentPositions(tablePositions, 1);
         foreach (var adjacentSet in adjacentPositionSets) {
             if (adjacentSet.Count > 0) {
                 Position3 pos = adjacentSet.ToList()[0];
-                var offset = _offsets["couch"];
-;                var objModel = Instantiate(_propManager.tableSetPrefab, ActualPos(pos.AsVector3(),
+                var offset = _offsets["table"];
+                var objModel = Instantiate(_propManager.tableSetPrefab, ActualPos(pos.AsVector3(),
                     offset, Vector3.left), Quaternion.identity);
+                _cubes.Add(pos, objModel);
+            }
+        }
+        
+        var couchFacings = new[] { Vector3.left, Vector3.right };
+        var couchRots = new[] { Quaternion.identity, Quaternion.Euler(0f, 180f, 0f), };
+
+        // Place the couches
+        adjacentPositionSets = KeepDistinctAdjacentPositions(couchPositions, 2);
+        foreach (var adjacentSet in adjacentPositionSets) {
+            if (adjacentSet.Count > 0) {
+                var rand = new System.Random().Next(couchFacings.Length);
+                var facing = couchFacings[rand];
+                var rot = couchRots[rand];
+                Position3 pos = adjacentSet.ToList()[0];
+                var offset = _couchOffsets[rand];
+                var objModel = Instantiate(_propManager.couch1, ActualPos(pos.AsVector3(),
+                    offset, facing), rot);
                 _cubes.Add(pos, objModel);
             }
         }
@@ -763,17 +790,17 @@ public class GameManager : MonoBehaviour {
         PlaceXBorderRailings(startX, y, range, -range, origin, Vector3.right, 90);
     }
 
-      // Locates all distinct groups of adjacent table positions
-    private HashSet<HashSet<Position3>> keepDistinctAdjacentPositions(List<Position3> tablePositions) {
+    // Locates all distinct groups of adjacent positions for a particular prefab
+    private HashSet<HashSet<Position3>> KeepDistinctAdjacentPositions(List<Position3> positions, int reach) {
         HashSet<HashSet<Position3>> adjacentPositionSets = new HashSet<HashSet<Position3>>();
         HashSet<Position3> visitedPositions = new HashSet<Position3>();
-        foreach (Position3 pos1 in tablePositions) {
+        foreach (Position3 pos1 in positions) {
             if (!visitedPositions.Contains(pos1)) {
                 HashSet<Position3> adjacentPositions = new HashSet<Position3>(); 
                 adjacentPositions.Add(pos1);
 
-                foreach (Position3 pos2 in tablePositions) {
-                    if (pos1 != pos2 && (Math.Abs(pos1.x - pos2.x)) <= 1 && Math.Abs(pos1.z - pos2.z) <= 1) {
+                foreach (Position3 pos2 in positions) {
+                    if (pos1 != pos2 && (Math.Abs(pos1.x - pos2.x)) <= reach && Math.Abs(pos1.z - pos2.z) <= reach) {
                         adjacentPositions.Add(pos2);
                         visitedPositions.Add(pos2);
                     }
