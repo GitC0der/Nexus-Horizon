@@ -119,8 +119,10 @@ namespace Painting
                     case < 80:
                         Windows_Lines(true, true, false);
                         break;
-                    default:
+                    case < 90:
                         Windows_Lines(false, false, false);
+                        break;
+                    default:
                         break;
                 }
 
@@ -132,8 +134,10 @@ namespace Painting
                     case < 80:
                         Windows_Lines(false, false, false);
                         break;
-                    default:
+                    case < 90:
                         Windows_Lines(true, true, false);
+                        break;
+                    default:
                         break;
                 }
                 

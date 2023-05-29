@@ -76,10 +76,15 @@ namespace Painting
                     }
                 }
             }
+            
+            int target = (int)Math.Round(facings.Count / 4.0);
+            if (target == 0) target = 1;
+            int total = 0;
+            for (int i = 0; i < target; i++) {
+                if (100 * Random.value < 50) ++total;
+            }
 
-            if (facings.Count < 5) return;
-
-            int target = (int)Math.Round(facings.Count / 6.0);
+            if (total == 0) return;
             int placedCount = 0;
             int iterationsCount = 0;
             do {
@@ -96,7 +101,7 @@ namespace Painting
                         ++placedCount;
                     }
                 }
-            } while (placedCount < target && iterationsCount < 20);
+            } while (placedCount < total && iterationsCount < 20);
 
         }
         
