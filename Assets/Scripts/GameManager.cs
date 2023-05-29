@@ -11,7 +11,6 @@ using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Light = UnityEngine.Light;
 using Random = UnityEngine.Random;
 
 public class GameManager : MonoBehaviour {
@@ -20,7 +19,6 @@ public class GameManager : MonoBehaviour {
     public bool useLights;
     public bool debugMode;
     public int _seed;
-    //public GraphicsLevel graphicsLevel;
 
     public GameObject buildingPrefab;
     public GameObject parkPrefab;
@@ -30,11 +28,6 @@ public class GameManager : MonoBehaviour {
     public GameObject plazaPrefab;
     public GameObject utilitiesPrefab;
     public GameObject lightPrefab;
-
-    public enum GraphicsLevel
-    {
-        Low, Medium, High, Ultra
-    }
 
     private PropManager _propManager;
     private InteractionsManager _interactionsManager;
@@ -60,9 +53,9 @@ public class GameManager : MonoBehaviour {
     private readonly Dictionary<string, Vector3> _offsets = new Dictionary<string, Vector3> {
         { "lamp", new Vector3(0, 1, 0) },
         { "plant", new Vector3(0.25f, -0.75f, 0.25f)},
-        { "railing", new Vector3(-0.4f, -0.5f, -1f)}
+        { "railing", new Vector3(-0.4f, -0.5f, -1f)},
+        { "couch", new Vector3(0.5f, -0.5f, 0.5f)}
     };
-
 
     public GameObject PrefabFrom(Block block) {
         GameObject prefab;
@@ -655,23 +648,15 @@ public class GameManager : MonoBehaviour {
             || Mathf.Abs(origin.y - pos.z) < epsilon || Mathf.Abs((origin.y - (range - 1)) - pos.z) < epsilon;
     }
 
-      private void GenerateWfcDemoTerrace() {
-        // Create the surface
+    private void GenerateWfcDemoTerrace() {
         const int startX = -20, startZ = 0, y = 0, range = 30;
-        HashSet<Position3> blocks = new HashSet<Position3>();
-        for (int x = startX; x < startX + range; x++) {
-            for (int z = startZ; z < startZ + range; z++) {
-                blocks.Add(new Position3(x, y, z));
-            }
-        }
-        Surface surface = new Surface(blocks, Position3.up, blockbox);
-        
+
         // Apply Wave Function Collapse to get an output
         Position3 origin = new Position3(startX, y, startZ);
         char initialChar = '-';
         Position2 initialPos = new Position2(1, 1);
-        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.DemoTerrace, surface.GetWidth(),
-            surface.GetHeight(), initialPos, initialChar, 3);
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.DemoTerrace, range,
+            range, initialPos, initialChar, 4);
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }
@@ -705,7 +690,7 @@ public class GameManager : MonoBehaviour {
                         prefCube = plazaPrefab;
                         tablePositions.Add(posModel);
                         break;
-                    case 'S':
+                    case 'C':
                         prefCube = skybridgePrefab;
                         break;
                     case '-':
@@ -759,12 +744,32 @@ public class GameManager : MonoBehaviour {
             }
         }
         
+        // Place the tables
+        var adjacentPositionSets = keepDistinctAdjacentPositions(tablePositions);
+        foreach (var adjacentSet in adjacentPositionSets) {
+            if (adjacentSet.Count > 0) {
+                Position3 pos = adjacentSet.ToList()[0];
+                var offset = _offsets["couch"];
+;                var objModel = Instantiate(_propManager.tableSetPrefab, ActualPos(pos.AsVector3(),
+                    offset, Vector3.left), Quaternion.identity);
+                _cubes.Add(pos, objModel);
+            }
+        }
+        
+        // Manually place the borders
+        PlaceZBorderRailings(startZ, y, range, 1, origin, Vector3.forward, 0);
+        PlaceZBorderRailings(startZ, y, range, -range, origin, Vector3.back, 180);
+        PlaceXBorderRailings(startX, y, range, 1, origin, Vector3.left, -90);
+        PlaceXBorderRailings(startX, y, range, -range, origin, Vector3.right, 90);
+    }
+
+      // Locates all distinct groups of adjacent table positions
+    private HashSet<HashSet<Position3>> keepDistinctAdjacentPositions(List<Position3> tablePositions) {
         HashSet<HashSet<Position3>> adjacentPositionSets = new HashSet<HashSet<Position3>>();
         HashSet<Position3> visitedPositions = new HashSet<Position3>();
-
         foreach (Position3 pos1 in tablePositions) {
             if (!visitedPositions.Contains(pos1)) {
-                HashSet<Position3> adjacentPositions = new HashSet<Position3>();
+                HashSet<Position3> adjacentPositions = new HashSet<Position3>(); 
                 adjacentPositions.Add(pos1);
 
                 foreach (Position3 pos2 in tablePositions) {
@@ -780,23 +785,7 @@ public class GameManager : MonoBehaviour {
                 }
             }
         }
-
-        // Place the tables
-        foreach (var adjacentSet in adjacentPositionSets) {
-            if (adjacentSet.Count > 0) {
-                Position3 pos = adjacentSet.ToList()[0];
-                var offset = new Vector3(0.3f, -0.5f, 0f);
-                var objModel = Instantiate(_propManager.tableSetPrefab, ActualPos(pos.AsVector3(),
-                    offset, Vector3.left), Quaternion.identity);
-                _cubes.Add(pos, objModel);
-            }
-        }
-        
-        // Manually place the borders
-        PlaceZBorderRailings(startZ, y, range, 1, origin, Vector3.forward, 0);
-        PlaceZBorderRailings(startZ, y, range, -range, origin, Vector3.back, 180);
-        PlaceXBorderRailings(startX, y, range, 1, origin, Vector3.left, -90);
-        PlaceXBorderRailings(startX, y, range, -range, origin, Vector3.right, 90);
+        return adjacentPositionSets;
     }
 
     private void PlaceXBorderRailings(int startX, int y, int range, int offset, Position3 origin, Vector3 facing, int rotAngle) {
