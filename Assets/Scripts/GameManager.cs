@@ -60,7 +60,7 @@ public class GameManager : MonoBehaviour {
     private readonly Dictionary<string, Vector3> _offsets = new Dictionary<string, Vector3> {
         { "lamp", new Vector3(0, 1, 0) },
         { "plant", new Vector3(0.25f, -0.75f, 0.25f)},
-        { "railing", new Vector3(1f, -0.5f, -0.4f)}
+        { "railing", new Vector3(-0.4f, -0.5f, -1f)}
     };
 
 
@@ -196,7 +196,7 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        // GenerateOutsideTestsurface();
+        GenerateWfcDemoFacade();
         GenerateWfcDemoTerrace();
         
         //var surfaces = FindAllsurfacesTest();
@@ -591,11 +591,12 @@ public class GameManager : MonoBehaviour {
         return currentsurface;
     }
 
-    private void GenerateOutsideTestSurface() {
+    private void GenerateWfcDemoFacade() {
+        int initX = 20;
         int height = 50;
-        int width = 15;
-        Position3 origin = new Position3(-height, 30, -width + 70);
-        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade2, width, height, new Position2(2, 48), 'D');
+        int width = 20;
+        Position3 origin = new Position3(-height - initX, 30, -width + height);
+        WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.Facade2, width, height, new Position2(2, 28), 'D');
         while (!wfc.IsDone()) {
             wfc.GenerateNextSlot();
         }
@@ -634,12 +635,7 @@ public class GameManager : MonoBehaviour {
                         break;
                     case '@':
                         // TODO: Remove this
-                        //pref = buildingPrefab;
-                        pref = plazaPrefab;
-                        isBalcony = false;
-                        break;
-                    default:
-                        isBalcony = false;
+                        pref = utilitiesPrefab;
                         break;
                 }
 
@@ -661,7 +657,7 @@ public class GameManager : MonoBehaviour {
 
     private void GenerateWfcDemoTerrace() {
         // Create the surface
-        const int startX = -50, startZ = 0, y = 0, range = 30;
+        const int startX = -20, startZ = 0, y = 0, range = 30;
         HashSet<Position3> blocks = new HashSet<Position3>();
         for (int x = startX; x < startX + range; x++) {
             for (int z = startZ; z < startZ + range; z++) {
@@ -673,7 +669,7 @@ public class GameManager : MonoBehaviour {
         // Apply Wave Function Collapse to get an output
         Position3 origin = new Position3(startX, y, startZ);
         char initialChar = '-';
-        Position2 initialPos = new Position2(0, 0);
+        Position2 initialPos = new Position2(1, 1);
         WaveFunctionCollapse wfc = new WaveFunctionCollapse(WaveFunctionCollapse.DemoTerrace, surface.GetWidth(),
             surface.GetHeight(), initialPos, initialChar);
         while (!wfc.IsDone()) {
@@ -682,9 +678,9 @@ public class GameManager : MonoBehaviour {
 
         // Use the WFC output to create the scene
         char[][] table = wfc.GetOutput();
-        for (int x = 0; x < table[0].Length; x++) {
-            for (int z = 0; z < table.Length; z++) {
-                char c = table[z][x];
+        for (int x = startX; x < startX + table[0].Length; x++) {
+            for (int z = startZ; z < startZ + table.Length; z++) {
+                char c = table[z - startZ][x - startX];
                 GameObject prefCube;
                 GameObject prefModel = null;
                 Vector3 offset = new Vector3();
@@ -719,86 +715,89 @@ public class GameManager : MonoBehaviour {
                         break;
                 }
                 
-                var posCube = new Position3(origin.x - x, y, origin.z - z);
+                var posCube = new Position3(origin.x - x + startX, y, origin.z - z + startZ);
+                var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
+                var facings = new[] { Vector3.left, Vector3.right, Vector3.back, Vector3.forward };
+                var rots = new[] { Quaternion.identity, Quaternion.Euler(0f, 180f, 0f),
+                    Quaternion.Euler(0f, -90f, 0f), Quaternion.Euler(0f, 90f, 0f) };
+                
+                int rand = new System.Random().Next(facings.Length);
+                var facing = facings[rand];
+                var rot = rots[rand];
                 if (prefCube != null) {
-                    // If at the border, manually override the WFC algorithm to place railings
-                    if (IsAtBorder(posCube.AsVector3(), origin.AsVector3(), range)) {
-                        GameObject o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
-                        _cubes.Add(new Position3(origin.x - x,y, origin.z - z), o);
-                        
-                        // Place the railing model
-                        var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
-                        var facing = Vector3.forward;
-                        var rot = Quaternion.identity;
-                        
-                        // Find the correct facing and rotation
-                        if (x == 0) {
-                            facing = Vector3.left;
-                        } else if (x == (range - 1)) {
-                            facing = Vector3.right;
-                            rot = Quaternion.Euler(0f, 180f, 0f);
-                        } else if (z == 0) {
-                            facing = Vector3.back;
-                            rot = Quaternion.Euler(0f, -90f, 0f);
-                        } else if (z == (range - 1)) {
-                            facing = Vector3.forward;
-                            rot = Quaternion.Euler(0f, 90f, 0f);
-                        }
+                    // Place the cube floor to demonstrate the algorithm
+                    GameObject objCube = Instantiate(prefCube, posCube.AsVector3(), Quaternion.identity);
+                    _cubes.Add(posCube, objCube);
 
-                        var objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
-                            _offsets["railing"], facing), rot);
+                    if (prefModel != null) {
+                        // If at the border, set the orientation of the lamps
+                        if (IsAtBorder(posCube.AsVector3(), origin.AsVector3(), range) &&
+                            prefModel == _propManager.lampPrefab) {
+                            // Find the correct facing and rotation of the lamps
+                            if (x == startX) {
+                                facing = Vector3.left;
+                                rot = Quaternion.identity;
+                            } else if (x == startX + (range - 1)) {
+                                facing = Vector3.right;
+                                rot = Quaternion.Euler(0f, 180f, 0f);
+                            } else if (z == startZ) {
+                                facing = Vector3.back;
+                                rot = Quaternion.Euler(0f, -90f, 0f);
+                            } else if (z == startZ + (range - 1)) {
+                                facing = Vector3.forward;
+                                rot = Quaternion.Euler(0f, 90f, 0f);
+                            }
+                        }
+                        // Place the corresponding models
+                        var objModel = Instantiate(prefModel, ActualPos(posModel.AsVector3(),
+                            offset, facing), rot);
                         _cubes.Add(posModel, objModel);
-                    } else {
-                        // Place the cube floor to demonstrate the algorithm
-                        GameObject objCube = Instantiate(prefCube, posCube.AsVector3(), Quaternion.identity);
-                        _cubes.Add(new Position3(origin.x - x,y, origin.z - z), objCube);
-
-                        // Place corresponding models
-                        var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
-                        if (prefModel != null) {
-                            // Todo: Find the correct facing
-                            var objModel = Instantiate(prefModel, ActualPos(posModel.AsVector3(),
-                                offset, Vector3.left), Quaternion.identity);
-                            _cubes.Add(posModel, objModel);
-                        }
                     }
                 }
             }
+        }
+        
+        // Manually place the borders
+        PlaceZBorderRailings(startZ, y, range, 1, origin, Vector3.forward, 0);
+        PlaceZBorderRailings(startZ, y, range, -range, origin, Vector3.back, 180);
+        PlaceXBorderRailings(startX, y, range, 1, origin, Vector3.left, -90);
+        PlaceXBorderRailings(startX, y, range, -range, origin, Vector3.right, 90);
+    }
+
+    private void PlaceXBorderRailings(int startX, int y, int range, int offset, Position3 origin, Vector3 facing, int rotAngle) {
+        for (int x = startX; x < startX + range; x++) {
+            // Instantiate the border
+            Position3 posCube = new Position3(origin.x + startX - x, y, origin.z + offset);
+            var o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
+            _cubes.Add(posCube, o);
+            
+            // Place the railing model
+            var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
+            var rot = Quaternion.Euler(0f, rotAngle, 0f);
+            var objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
+                _offsets["railing"], facing), rot);
+            _cubes.Add(posModel, objModel);
+        }
+    }
+    
+    private void PlaceZBorderRailings(int startZ, int y, int range, int offset, Position3 origin, Vector3 facing, int rotAngle) {
+        for (int z = startZ - 1; z < startZ + range + 1; z++) {
+            // Instantiate the border
+            var posCube = new Position3(origin.x + offset, y, origin.z - z);
+            var o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
+            _cubes.Add(posCube, o);
+            
+            // Place the railing model
+            var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
+            var rot = Quaternion.Euler(0f, rotAngle, 0f);
+            var objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
+                _offsets["railing"], facing), rot);
+            _cubes.Add(posModel, objModel);
         }
     }
     
     private Vector3 ActualPos(Vector3 pos, Vector3 offset, Vector3 facing) {
         return pos + offset.x * facing.RotatedLeft() + offset.y * Vector3.up + offset.z * facing;
-    }
-
-    private HashSet<Position3> BfsTerrace(Position3 startingPos) {
-        Position3 normalDirection = Position3.up;
-        Queue<Position3> queue = new Queue<Position3>();
-        HashSet<Position3> currentSurface = new();
-        queue.Enqueue(startingPos + normalDirection);
-        
-        while (queue.Count != 0) {
-            Position3 bfsPosition = queue.Dequeue();
-            currentSurface.Add(bfsPosition);
-            
-            // Todo: Should not use the blockbox
-
-            var bfsNeighbors = blockbox.GetRelativeNeighbors(bfsPosition);
-            foreach (var (relativeBfsNeighborPos, b) in bfsNeighbors) {
-                Position3 examined = relativeBfsNeighborPos + bfsPosition;
-                
-                Block block1 = blockbox.BlockAt(examined + normalDirection);
-                Block block2 = blockbox.BlockAt(examined - normalDirection);
-                if (relativeBfsNeighborPos != normalDirection
-                    && relativeBfsNeighborPos != -normalDirection
-                    && b == Block.Building
-                    && !currentSurface.Contains(examined) && !queue.Contains(examined)
-                    && !(block1 == Block.Building && block2 == Block.Building)) {
-                    queue.Enqueue(examined);
-                }
-            }
-        }
-        return currentSurface;
     }
 
     private void SpawnBlocks() {
