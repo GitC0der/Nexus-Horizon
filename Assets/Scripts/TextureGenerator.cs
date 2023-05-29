@@ -1,4 +1,5 @@
 ﻿using System;
+using DefaultNamespace.TextureGeneration;
 using Painting;
 using UnityEngine;
 
@@ -7,7 +8,7 @@ namespace DefaultNamespace
     public class TextureGenerator: MonoBehaviour
     {
         private void Start() {
-            WaveFunctionCollapse wfc = new(WaveFunctionCollapse.Roof1, 32, 32, new Position2(0, 0), 'B');
+            WaveFunctionCollapse wfc = new(TextureInputs.Example1, 32, 32, new Position2(0, 0), 'B',3);
             while (!wfc.IsDone())
             {
                 wfc.GenerateNextSlot();

@@ -19,7 +19,7 @@ public class GameManager : MonoBehaviour {
     public bool useShader;
     public bool useLights;
     public bool debugMode;
-    public bool isDeterministic;
+    public int _seed;
     //public GraphicsLevel graphicsLevel;
 
     public GameObject buildingPrefab;
@@ -109,8 +109,8 @@ public class GameManager : MonoBehaviour {
             }
         }
 
-        if (isDeterministic) {
-            Random.InitState(9365);
+        if (_seed > 0) {
+            Random.InitState(_seed);
         }
         
         isRunning = true;

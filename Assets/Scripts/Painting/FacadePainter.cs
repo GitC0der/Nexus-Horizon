@@ -175,6 +175,8 @@ namespace Painting
 
         private bool IsRoomForDoor(Position3 pos) {
             for (int i = 0; i < 3; i++) {
+                if (_blockBox.BlockAt(pos + (i-1) * _surface.GetWidthDirection() + _surface.GetNormal() + Position3.down) != Block.Building) return false;
+                if (_blockBox.BlockAt(pos + (i-1) * _surface.GetWidthDirection() + 2*_surface.GetNormal() + Position3.down) != Block.Building) return false;
                 for (int y = 0; y < 3; y++) {
                     Position3 newPos = pos + (i-1) * _surface.GetWidthDirection() + y*Position3.up;
                     if (!_blockBox.IsStrictlyInside(newPos) || !_blockBox.IsStrictlyInside(newPos + 2*_surface.GetNormal()) || _blockBox.BlockAt(newPos) == Block.Void) return false;
@@ -182,6 +184,8 @@ namespace Painting
                     if (_blockBox.BlockAt(newPos + 2*_surface.GetNormal()) != Block.Void) return false;
                 }
             }
+
+            
 
             //if (!_blockBox.IsStrictlyInside(pos + 2 * _surface.GetNormal()) || _blockBox.BlockAt(pos + 2 * _surface.GetNormal()) == Block.Void) return false;
 
