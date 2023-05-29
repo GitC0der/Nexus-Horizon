@@ -60,7 +60,7 @@ public class GameManager : MonoBehaviour {
     private readonly Dictionary<string, Vector3> _offsets = new Dictionary<string, Vector3> {
         { "lamp", new Vector3(0, 1, 0) },
         { "plant", new Vector3(0.25f, -0.75f, 0.25f)},
-        { "railing", new Vector3(1f, -0.5f, -0.4f)}
+        { "railing", new Vector3(-0.4f, -0.5f, -1f)}
     };
 
 
@@ -717,12 +717,12 @@ public class GameManager : MonoBehaviour {
                 
                 var posCube = new Position3(origin.x - x + startX, y, origin.z - z + startZ);
                 if (prefCube != null) {
-                    // If at the border, manually override the WFC algorithm to place railings
-                    if (IsAtBorder(posCube.AsVector3(), origin.AsVector3(), range)) {
-                        GameObject o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
+                    // If at the border set the orientation of the lamps
+                    if (IsAtBorder(posCube.AsVector3(), origin.AsVector3(), range) && prefModel == _propManager.lampPrefab) {
+                        GameObject o = Instantiate(lightPrefab, posCube.AsVector3(), Quaternion.identity);
                         _cubes.Add(posCube, o);
                         
-                        // Place the railing model
+                        // Place the lamp model
                         var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
                         var facing = Vector3.forward;
                         var rot = Quaternion.identity;
@@ -741,8 +741,8 @@ public class GameManager : MonoBehaviour {
                             rot = Quaternion.Euler(0f, 90f, 0f);
                         }
                         
-                        var objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
-                            _offsets["railing"], facing), rot);
+                        var objModel = Instantiate(prefModel, ActualPos(posModel.AsVector3(),
+                            _offsets["lamp"], facing), rot);
                         _cubes.Add(posModel, objModel);
                     } else {
                         // Place the cube floor to demonstrate the algorithm
@@ -760,6 +760,63 @@ public class GameManager : MonoBehaviour {
                     }
                 }
             }
+        }
+        
+        // Manually place the borders
+        for (int z = startZ - 1; z < startZ + range + 1; z++) {
+            // Instantiate upper border
+            var posCube = new Position3(origin.x + 1, y, origin.z - z);
+            GameObject o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
+            _cubes.Add(posCube, o);
+            
+            // Place the railing model
+            var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
+            var facing = Vector3.forward;
+            var rot = Quaternion.identity;
+            var objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
+                _offsets["railing"], facing), rot);
+            _cubes.Add(posModel, objModel);
+            
+            // Instantiate lower border
+            posCube = new Position3(origin.x - range, y, origin.z - z);
+            o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
+            _cubes.Add(posCube, o);
+            
+            // Place the railing model
+            posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
+            facing = Vector3.back;
+            rot = Quaternion.Euler(0f, 180f, 0f);
+            objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
+                _offsets["railing"], facing), rot);
+            _cubes.Add(posModel, objModel);
+        }
+
+        for (int x = startX; x < startX + range; x++) {
+            // Instantiate upper border
+            var posCube = new Position3(origin.x - x + startX, y, origin.z + 1);
+            GameObject o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
+            _cubes.Add(posCube, o);
+            
+            // Place the railing model
+            var posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
+            var facing = Vector3.left;
+            var rot = Quaternion.Euler(0f, -90f, 0f);
+            var objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
+                _offsets["railing"], facing), rot);
+            _cubes.Add(posModel, objModel);
+        
+            // Instantiate lower border
+            posCube = new Position3(origin.x - x + startX, y, origin.z - range);
+            o = Instantiate(utilitiesPrefab, posCube.AsVector3(), Quaternion.identity);
+            _cubes.Add(posCube, o);
+            
+            // Place the railing model
+            posModel = new Position3(posCube.x, posCube.y + 1, posCube.z);
+            facing = Vector3.right;
+            rot = Quaternion.Euler(0f, 90f, 0f);
+            objModel = Instantiate(_propManager.railingPrefab, ActualPos(posModel.AsVector3(),
+                _offsets["railing"], facing), rot);
+            _cubes.Add(posModel, objModel);
         }
     }
     
