@@ -189,7 +189,10 @@ namespace DefaultNamespace.TextureGeneration
             "GGGGGGG--------GGGGGGG----------"
             });
 
-        public static readonly WaveFunctionCollapse.Tile MetalDark = new (new string[] {
+        // D: color = new UnityEngine.Color(0.74f, 0.74f, 0.74f, 1f);
+        // W: color = new UnityEngine.Color(0.784f, 0.784f, 0.784f, 1f);
+        // -: color = new UnityEngine.Color(0.466f, 0.466f, 0.466f, 1f);
+        public static readonly WaveFunctionCollapse.Tile MetalDark = new(new string[] {
             "---------------DWWWWWWWWWWWD----",
             "---------------DDDDDDDDDDDDD----",
             "--------------------------------",
@@ -222,6 +225,78 @@ namespace DefaultNamespace.TextureGeneration
             "----DWWWWWWD--------------------",
             "----DDDDDDDD---DDDDDDDDDDDD-----",
             "---------------DWWWWWWWWWWD-----"
+            });
+
+        // -: color = new UnityEngine.Color(0.992f, 0.572f, 0.172f, 1f);
+        // D: color = new UnityEngine.Color(1f, 0.772f, 0.501f, 1f);
+        public static readonly WaveFunctionCollapse.Tile Pot = new(new string[] {
+            "------------DDDDD---------------",
+            "------------D-------------------",
+            "------------DDDDDDD-------------",
+            "---DDDD-----D-------------------",
+            "-----DDDDDD---------------------",
+            "--------------------------------",
+            "--------------------------------",
+            "------------------DDDDDD--------",
+            "------------------D-------------",
+            "------------------D-------------",
+            "-----------DDDDDD-D-------------",
+            "------------------D-------------",
+            "------------------D-------------",
+            "------------------D-------------",
+            "--------------------------------",
+            "--------------------------------",
+            "------DDDDDDDDDDD---------------",
+            "--------------------------------",
+            "--------------------------------",
+            "--------------------------------",
+            "--------------------------------",
+            "-----------D--------------------",
+            "-----------D--------------------",
+            "-----------D--------------------",
+            "-----------DDDDDDD--------------",
+            "-----------D--------------------",
+            "-----------D--------------------",
+            "--------------------------------",
+            "--------------------------------",
+            "------------DDDDD---------------",
+            "--------DDDDDD------------------",
+            "------DDD-----------------------",
+            });
+
+        public static readonly WaveFunctionCollapse.Tile Table = new (new string[] {
+            "-----WWWWWWWWWWWWWWWWWWWWW------",
+            "-----WWWWWWWWWWWWWWWWWWWWW------",
+            "-----WWWWWWWWWWWWWWWWWWWWW------",
+            "-----WWWWWWWWWWWWWWWWWWWWW------",
+            "-----WWWWWWWWWWWWWWWWWWWWW------",
+            "-----WWWWWWWWWWWWWWWWWWWWW------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
+            "-------WWWWWWWWWWWWWWWWW--------",
+            "--------WWWWWWWWWWWWWWW---------",
+            "---------WWWWWWWWWWWWW----------",
+            "----------WWWWWWWWWWW-----------",
+            "-----------WWWWWWWWW------------",
+            "------------WWWWWWW-------------",
+            "-------------WWWWW--------------",
+            "--------------WWW---------------",
+            "---------------W----------------",
+            "--------------WWW---------------",
+            "-------------WWWWW--------------",
+            "------------WWWWWWW-------------",
+            "-----------WWWWWWWWW------------",
+            "----------WWWWWWWWWWW-----------",
+            "---------WWWWWWWWWWWWW----------",
+            "--------WWWWWWWWWWWWWWW---------",
+            "-------WWWWWWWWWWWWWWWWW--------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
+            "------WWWWWWWWWWWWWWWWWWW-------",
             });
     }
 }
