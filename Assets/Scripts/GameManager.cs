@@ -120,7 +120,14 @@ public class GameManager : MonoBehaviour {
         }
 
         if (instantGeneration) {
-            Regenerate();
+            while (true) {
+                try {
+                    Regenerate();
+                    break;
+                } catch {
+                    
+                }
+            }
         }
 
     }
