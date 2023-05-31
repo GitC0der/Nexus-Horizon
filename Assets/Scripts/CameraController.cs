@@ -2,8 +2,8 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
-    private float rotationSpeed = 100f;
-    private float movementSpeed = 40f;
+    private float rotationSpeed = 40f;
+    private float movementSpeed = 15;
 
     private Transform cameraTransform;
 

@@ -144,7 +144,15 @@ public class GameManager : MonoBehaviour {
         }
 
         if (Input.GetKeyDown(KeyCode.R)) {
-            Regenerate();
+            while (true) {
+                try {
+                    Regenerate();
+                    break;
+                } catch {
+                    
+                }
+            }
+
         }
         
         if (!isRunning && !isPlacingOne) {
@@ -198,25 +206,22 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        GenerateWfcDemoFacade();
-        GenerateWfcDemoTerrace();
+        
+        
+        //GenerateWfcDemoFacade();
+        //GenerateWfcDemoTerrace();
         
         //var surfaces = FindAllsurfacesTest();
+        
+        
         var surfaces = Findsurfaces();
         _surfaces = surfaces;
 
-        if (true) {
-            GenerateAllFacades(surfaces);
-            //DrawSurfaceNormals(surfaces);
-        } else {
-            GenerateAllWallBorders(surfaces);
-            
-        }
+        GenerateAllFacades(surfaces);
         GenerateAllFloors(surfaces);
         
         
-        //GenerateFloorBorders(BorderType.None, surfaces);
-
+        
 
         OptimizeBlockBox();
         
