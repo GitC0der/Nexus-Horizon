@@ -229,8 +229,8 @@ public class GameManager : MonoBehaviour {
         SpawnBlocks();
         
         //CombineMeshes();
-        
-        Lightmapping.BakeAsync();
+
+        //Lightmapping.BakeAsync();
     }
 
     private HashSet<Surface> FindAllsurfacesTest() {
@@ -370,7 +370,7 @@ public class GameManager : MonoBehaviour {
                 */
             }
         }
-        Lightmapping.BakeAsync();
+        //Lightmapping.BakeAsync();
     }
 
     [CanBeNull]
