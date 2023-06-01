@@ -213,13 +213,10 @@ public class GameManager : MonoBehaviour {
             GenerateBlock();
         }
         
-        
-        
-        //GenerateWfcDemoFacade();
-        //GenerateWfcDemoTerrace();
+        GenerateWfcDemoFacade();
+        GenerateWfcDemoTerrace();
         
         //var surfaces = FindAllsurfacesTest();
-        
         
         var surfaces = Findsurfaces();
         _surfaces = surfaces;
@@ -227,9 +224,6 @@ public class GameManager : MonoBehaviour {
         GenerateAllFacades(surfaces);
         GenerateAllFloors(surfaces);
         
-        
-        
-
         OptimizeBlockBox();
         
         SpawnBlocks();
@@ -237,15 +231,12 @@ public class GameManager : MonoBehaviour {
         //CombineMeshes();
         
         Lightmapping.BakeAsync();
-
     }
-
 
     private HashSet<Surface> FindAllsurfacesTest() {
         List<GameObject> prefabs = new List<GameObject>() {parkPrefab, buildingPrefab, trainPrefab, walkwayPrefab, skybridgePrefab};
         var surfaces = Findsurfaces();
         foreach (var surface in surfaces) {
-            
             
             Block block;
             if (surface.GetOrientation() == Orientation.Roof) {
@@ -269,8 +260,7 @@ public class GameManager : MonoBehaviour {
                 blockbox.ForceSetBlock(block, pos);
             }
             */
-            
-            
+
             if (surface.GetOrientation() == Orientation.Roof) {
                 block = new List<Block>() { Block.Park, Block.Window, Block.Door, Block.Walkway }[Random.Range(0, 4)];
                 block = Block.Door;
@@ -279,8 +269,6 @@ public class GameManager : MonoBehaviour {
                     blockbox.ForceSetBlock(block, pos);
                 }
             }
-            
-            
         }
 
         return surfaces;
@@ -360,7 +348,6 @@ public class GameManager : MonoBehaviour {
                         
                     }
                     blockbox.ForceSetBlock(block, position);
-
                 }
                 */
             }
@@ -381,12 +368,8 @@ public class GameManager : MonoBehaviour {
                     } 
                 }
                 */
-                
             }
         }
-        
-        
-        
         Lightmapping.BakeAsync();
     }
 
@@ -395,7 +378,6 @@ public class GameManager : MonoBehaviour {
         foreach (Surface surface in _surfaces) {
             if (surface.IsFloor() && surface.Contains(pos + Position3.down)) return surface;
         }
-
         return null;
     }
     
@@ -416,7 +398,6 @@ public class GameManager : MonoBehaviour {
                 blockbox.ForceSetBlock(Block.Utilities, pos + surface.GetNormal(), Vector3.zero);
                 blockbox.ForceSetBlock(Block.Utilities, pos + 2*surface.GetNormal(), Vector3.zero);
             }
-            
         }
     }
 
@@ -459,13 +440,11 @@ public class GameManager : MonoBehaviour {
                             block = Block.Void;
                             break;
                     }
-                    
-                    
+
                     if (block != Block.Void) {
                         blockbox.ForceSetBlock(block, surface.GetMinCorner3() + new Position3(x,0,z));
                     }
                     
-
                     foreach (Position3 p in surface.GetBlocks()) {
                         blockbox.ForceSetBlock(Block.Window, p);
                     }
@@ -509,9 +488,7 @@ public class GameManager : MonoBehaviour {
                                     surfaces.Add(new Surface(currentSurface, -relativeNeighborPos, blockbox));
                                     blocksInsurfaces.AddRange(currentSurface);
                                 }
-                                
                             }
-                            
                         }
                     }
                 }
@@ -599,7 +576,6 @@ public class GameManager : MonoBehaviour {
                 }
             }
             */
-
         }
 
         return currentsurface;
